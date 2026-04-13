@@ -1,0 +1,2608 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  PROTOCOLO DE SUPERVIVENCIA v1.0
+  Arquitectura: Single-File PWA con Service Worker embebido
+  Filosofía: Offline-First, Mobile-First, Batería-First
+  Paleta: Negro absoluto + Ámbar OLED + Verde fósforo
+  Fuente: Share Tech Mono (terminal táctico)
+  ============================================================
+  ADVERTENCIA LEGAL:
+  Esta aplicación proporciona información educativa de preparación
+  para emergencias basada en fuentes gubernamentales y científicas.
+  No reemplaza evacuaciones oficiales ni instrucciones de autoridades.
+  ============================================================
+-->
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#000000"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="PROTOCOLO"/>
+  <meta name="application-name" content="PROTOCOLO DE SUPERVIVENCIA"/>
+  <meta name="description" content="Enciclopedia táctica offline para escenarios de colapso de infraestructura"/>
+  <meta name="format-detection" content="telephone=no"/>
+  <meta name="msapplication-TileColor" content="#000000"/>
+  <meta name="msapplication-tap-highlight" content="no"/>
+  <title>PROTOCOLO DE SUPERVIVENCIA</title>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MANIFIESTO PWA embebido como Data URL
+       Incluye iconos SVG en Base64 para 192, 256 y 512px
+  ═══════════════════════════════════════════════════════ -->
+  <script>
+  (function(){
+    // SVG base para iconos: símbolo de radiación estilizado sobre negro
+    const svgBase = (size) => {
+      const s = size;
+      const c = s/2;
+      const r1 = s*0.38;
+      const r2 = s*0.18;
+      const r3 = s*0.07;
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+        <rect width="${s}" height="${s}" fill="#000000"/>
+        <circle cx="${c}" cy="${c}" r="${r1}" fill="none" stroke="#f59e0b" stroke-width="${s*0.025}"/>
+        <circle cx="${c}" cy="${c}" r="${r2}" fill="#f59e0b" opacity="0.9"/>
+        <circle cx="${c}" cy="${c}" r="${r3}" fill="#000000"/>
+        <path d="M${c} ${c-r1*1.1} A${r1*1.1} ${r1*1.1} 0 0 1 ${c+r1*1.1*0.866} ${c+r1*1.1*0.5}" fill="none" stroke="#f59e0b" stroke-width="${s*0.06}" stroke-linecap="round"/>
+        <path d="M${c+r1*1.1*0.866} ${c+r1*1.1*0.5} A${r1*1.1} ${r1*1.1} 0 0 1 ${c-r1*1.1*0.866} ${c+r1*1.1*0.5}" fill="none" stroke="#f59e0b" stroke-width="${s*0.06}" stroke-linecap="round"/>
+        <path d="M${c-r1*1.1*0.866} ${c+r1*1.1*0.5} A${r1*1.1} ${r1*1.1} 0 0 1 ${c} ${c-r1*1.1}" fill="none" stroke="#f59e0b" stroke-width="${s*0.06}" stroke-linecap="round"/>
+        <text x="${c}" y="${s*0.92}" fill="#f59e0b" font-family="monospace" font-size="${s*0.09}" text-anchor="middle" font-weight="bold">PROTOCOLO</text>
+      </svg>`;
+    };
+
+    // Convertir SVG a base64
+    const toB64 = (str) => btoa(unescape(encodeURIComponent(str)));
+
+    const icons = [192, 256, 512].map(size => ({
+      src: `data:image/svg+xml;base64,${toB64(svgBase(size))}`,
+      sizes: `${size}x${size}`,
+      type: "image/svg+xml",
+      purpose: "any maskable"
+    }));
+
+    const manifest = {
+      name: "Protocolo de Supervivencia",
+      short_name: "PROTOCOLO",
+      description: "Enciclopedia táctica offline para escenarios de colapso",
+      start_url: "./",
+      display: "standalone",
+      background_color: "#000000",
+      theme_color: "#2d7dd2",
+      orientation: "portrait-primary",
+      lang: "es",
+      categories: ["education", "utilities"],
+      icons: icons
+    };
+
+    const manifestBlob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
+    const manifestURL = URL.createObjectURL(manifestBlob);
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = manifestURL;
+    document.head.appendChild(link);
+
+    // Apple touch icon
+    const appleIcon = document.createElement('link');
+    appleIcon.rel = 'apple-touch-icon';
+    appleIcon.href = `data:image/svg+xml;base64,${toB64(svgBase(192))}`;
+    document.head.appendChild(appleIcon);
+  })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════
+       TAILWIND CSS 3 vía CDN
+       La configuración se define ANTES de cargar el CDN
+       usando la variable global tailwind.config para que
+       el script del CDN la recoja al inicializarse.
+  ═══════════════════════════════════════════════════════ -->
+  <script>
+    // Definir config ANTES de que cargue el CDN de Tailwind.
+    // Tailwind CDN lee window.tailwind?.config al arrancar;
+    // si lo definimos aquí el parser lo tomará correctamente.
+    window.tailwind = window.tailwind || {};
+    window.tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            amber: { 400: '#fbbf24', 500: 'var(--warn2)', 600: '#d97706' },
+            green: { 400: '#4ade80', 500: '#22c55e' },
+            red:   { 500: '#ef4444', 600: '#dc2626' }
+          },
+          fontFamily: {
+            mono: ['"Share Tech Mono"', 'Courier New', 'monospace'],
+          },
+          minHeight: { touch: '48px' },
+          fontSize:  { 'xxs': '0.65rem' }
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fuente táctica terminal -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+
+  <style>
+    /* ══════════════════════════════════════════════════════
+       PALETA CORPORATIVA v2.0 — ALTA LEGIBILIDAD LUZ SOLAR
+       ──────────────────────────────────────────────────────
+       Primario:  #0f1923  (azul-grafito muy oscuro, base)
+       Superficie:#16232f  (paneles y cards)
+       Borde:     #2a3f52  (separadores)
+       Acento:    #2d7dd2  (azul acero institucional)
+       Texto 1:   #e8edf2  (blanco crema — ratio >7:1 sobre fondo)
+       Texto 2:   #a0b4c8  (gris azulado — subtítulos)
+       Alerta:    #e85d2f  (rojo-naranja — critico, visible al sol)
+       Éxito:     #2eb87c  (verde esmeralda corporativo)
+       Aviso:     #d4a017  (ámbar oscuro — advertencia, no brillante)
+       ────────────────────────────────────────────────────── */
+    :root {
+      --bg:       #0f1923;
+      --surface:  #16232f;
+      --surface2: #1d2f3e;
+      --border:   #2a3f52;
+      --border2:  #3a5268;
+      --accent:   #2d7dd2;
+      --accent2:  #4a9de8;
+      --text1:    #e8edf2;
+      --text2:    #a0b4c8;
+      --text3:    #6b8499;
+      --danger:   #e85d2f;
+      --danger2:  #ff7a52;
+      --success:  #2eb87c;
+      --success2: #4dd49a;
+      --warn:     #d4a017;
+      --warn2:    #f0b929;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--text1);
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+    }
+    ::-webkit-scrollbar { width: 4px; background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    @keyframes scan {
+      0%   { transform: translateY(-100vh); }
+      100% { transform: translateY(100vh); }
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    @keyframes fadeIn {
+      from { opacity:0; transform:translateY(8px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    /* Línea de barrido sutil — azul en lugar de ámbar */
+    .scan-line::after {
+      content: '';
+      position: fixed; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(to right, transparent, var(--accent), transparent);
+      opacity: 0.25;
+      animation: scan 8s linear infinite;
+      pointer-events: none; z-index: 9999;
+    }
+    .cursor-blink { animation: blink 1s step-end infinite; }
+    .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+
+    /* ── BOTONES ─────────────────────────────────────────── */
+    .btn-tactical {
+      min-height: 48px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text1);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.15s;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .btn-tactical:hover, .btn-tactical:active {
+      background: var(--surface2);
+      border-color: var(--accent);
+      color: var(--accent2);
+    }
+    .btn-tactical.active {
+      background: var(--surface2);
+      border-color: var(--accent);
+      color: var(--accent2);
+    }
+    .btn-danger {
+      border-color: var(--danger);
+      color: var(--danger2);
+      background: var(--surface);
+    }
+    .btn-danger:hover { background: rgba(232,93,47,0.1); border-color: var(--danger2); }
+    .btn-green {
+      border-color: var(--success);
+      color: var(--success2);
+      background: var(--surface);
+    }
+    .btn-green:hover { background: rgba(46,184,124,0.1); border-color: var(--success2); }
+
+    /* ── PANELES ─────────────────────────────────────────── */
+    .panel {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 4px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .panel-danger { border-color: var(--danger); background: rgba(232,93,47,0.07); }
+    .panel-green  { border-color: var(--success); background: rgba(46,184,124,0.07); }
+    .panel-blue   { border-color: var(--accent);  background: rgba(45,125,210,0.07); }
+    .panel-warn   { border-color: var(--warn);    background: rgba(212,160,23,0.07); }
+
+    /* ── ETIQUETAS / TAGS ────────────────────────────────── */
+    .tag {
+      display: inline-block;
+      font-size: 0.58rem;
+      padding: 2px 7px;
+      border-radius: 2px;
+      letter-spacing: 0.12em;
+      font-weight: bold;
+    }
+    .tag-red   { background:rgba(232,93,47,0.2);  color:var(--danger2);  border:1px solid rgba(232,93,47,0.5); }
+    .tag-amber { background:rgba(212,160,23,0.2); color:var(--warn2);    border:1px solid rgba(212,160,23,0.5); }
+    .tag-green { background:rgba(46,184,124,0.2); color:var(--success2); border:1px solid rgba(46,184,124,0.5); }
+    .tag-blue  { background:rgba(45,125,210,0.2); color:var(--accent2);  border:1px solid rgba(45,125,210,0.5); }
+    .tag-gray  { background:rgba(160,180,200,0.15); color:var(--text2);  border:1px solid var(--border2); }
+
+    .divider { border:none; border-top:1px solid var(--border); margin:0.75rem 0; }
+
+    /* ── FORMULARIOS ─────────────────────────────────────── */
+    input, select, textarea {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text1);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.85rem;
+      padding: 0.6rem 0.75rem;
+      width: 100%;
+      min-height: 48px;
+      border-radius: 3px;
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(45,125,210,0.2);
+    }
+    select option { background: var(--surface2); color: var(--text1); }
+    input::placeholder, textarea::placeholder { color: var(--text3); }
+
+    /* ── TIPOGRAFÍA ──────────────────────────────────────── */
+    .section-title {
+      font-size: 0.62rem;
+      letter-spacing: 0.22em;
+      color: var(--text3);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+      border-left: 2px solid var(--accent);
+      padding-left: 0.4rem;
+    }
+
+    /* ── NAVEGACIÓN ──────────────────────────────────────── */
+    .nav-bottom {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: grid; grid-template-columns: repeat(6, 1fr);
+      z-index: 100;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    .nav-btn {
+      min-height: 56px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      color: var(--text3);
+      font-size: 0.5rem;
+      letter-spacing: 0.08em;
+      transition: color 0.15s, background 0.15s;
+      padding: 8px 2px;
+      border: none;
+      background: none;
+    }
+    .nav-btn.active {
+      color: var(--accent2);
+      background: rgba(45,125,210,0.1);
+      border-top: 2px solid var(--accent);
+    }
+    .nav-btn svg { width: 18px; height: 18px; }
+
+    /* ── LAYOUT ──────────────────────────────────────────── */
+    .main-content {
+      padding-bottom: 80px;
+      padding-top: 56px;
+      min-height: 100vh;
+    }
+    .header-bar {
+      position: fixed; top: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-bottom: 2px solid var(--accent);
+      height: 56px;
+      display: flex; align-items: center;
+      padding: 0 1rem;
+      z-index: 100;
+      gap: 0.5rem;
+    }
+
+    /* ── CALCULADORA SLIDER ──────────────────────────────── */
+    .rad-calc input[type=range] {
+      -webkit-appearance: none;
+      background: var(--border);
+      height: 4px;
+      border-radius: 2px;
+      outline: none;
+      min-height: unset;
+      border: none;
+      padding: 0;
+    }
+    .rad-calc input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px; height: 20px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid var(--text1);
+    }
+
+    /* ── BARRA DE PROGRESO ───────────────────────────────── */
+    .progress-bar {
+      height: 5px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+
+    /* ── TABLAS ──────────────────────────────────────────── */
+    .table-tactical { width:100%; border-collapse:collapse; font-size:0.75rem; }
+    .table-tactical th {
+      text-align:left; padding:7px 8px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text3);
+      font-size:0.6rem; letter-spacing:0.15em;
+      background: var(--surface2);
+    }
+    .table-tactical td {
+      padding:8px 8px;
+      border-bottom:1px solid var(--border);
+      color: var(--text1);
+    }
+    .table-tactical tr:last-child td { border-bottom:none; }
+    .table-tactical tr:hover td { background: var(--surface2); }
+
+    /* ── BADGE DE RED ────────────────────────────────────── */
+    .offline-badge {
+      position: fixed; top: 12px; right: 72px;
+      font-size: 0.55rem; padding: 2px 7px;
+      border-radius: 10px; z-index: 200;
+      background: rgba(46,184,124,0.2);
+      color: var(--success2);
+      border: 1px solid rgba(46,184,124,0.5);
+      font-weight: bold; letter-spacing: 0.08em;
+    }
+    .offline-badge.offline-no {
+      background: rgba(232,93,47,0.2);
+      color: var(--danger2);
+      border-color: rgba(232,93,47,0.5);
+    }
+
+    /* ── TEXTO CON COLOR CORPORATIVO ─────────────────────── */
+    .text-accent   { color: var(--accent2) !important; }
+    .text-danger   { color: var(--danger2) !important; }
+    .text-success  { color: var(--success2) !important; }
+    .text-warn     { color: var(--warn2) !important; }
+    .text-muted    { color: var(--text2) !important; }
+    .text-dimmed   { color: var(--text3) !important; }
+    .text-primary  { color: var(--text1) !important; }
+
+    /* ── REFUGIOS: CARDS ─────────────────────────────────── */
+    .shelter-card {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 4px;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .shelter-card:hover, .shelter-card:active {
+      border-color: var(--accent);
+      background: var(--surface2);
+    }
+    .shelter-card.cat-a { border-left: 3px solid var(--success); }
+    .shelter-card.cat-b { border-left: 3px solid var(--accent); }
+    .shelter-card.cat-c { border-left: 3px solid var(--warn); }
+    .shelter-card.cat-d { border-left: 3px solid var(--danger); }
+
+    /* ── TOOLTIP ─────────────────────────────────────────── */
+    .tooltip { display: none; }
+    .tooltip-parent:active .tooltip { display: block; }
+  </style>
+</head>
+<body class="scan-line dark">
+
+<!-- ═══════════════════════════════════════════════════════════
+     INDICADOR DE ESTADO DE RED
+═══════════════════════════════════════════════════════════ -->
+<div id="networkBadge" class="offline-badge">● OFFLINE</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     BARRA DE CABECERA
+═══════════════════════════════════════════════════════════ -->
+<div class="header-bar">
+  <span style="color:var(--accent2); font-size:1.1rem;">☢</span>
+  <div style="flex:1;">
+    <div style="font-size:0.75rem; letter-spacing:0.15em; color:var(--text1); font-weight:bold;">PROTOCOLO</div>
+    <div style="font-size:0.55rem; color:var(--text3); letter-spacing:0.1em;" id="headerSub">SISTEMA OPERACIONAL</div>
+  </div>
+  <div style="font-size:0.65rem; color:var(--text2);" id="headerClock">--:--</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     CONTENIDO PRINCIPAL (cambio de vistas)
+═══════════════════════════════════════════════════════════ -->
+<div class="main-content" id="mainContent">
+  <!-- Las vistas se renderizan dinámicamente -->
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     NAVEGACIÓN INFERIOR TÁCTICA
+═══════════════════════════════════════════════════════════ -->
+<nav class="nav-bottom" id="navBottom">
+  <button class="nav-btn" data-view="home" onclick="App.nav('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    BASE
+  </button>
+  <button class="nav-btn" data-view="scenarios" onclick="App.nav('scenarios')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    AMENAZA
+  </button>
+  <button class="nav-btn" data-view="shelters" onclick="App.nav('shelters')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7"/><path d="M9 22V12h6v10"/><rect x="2" y="9" width="20" height="13" rx="1"/></svg>
+    REFUGIO
+  </button>
+  <button class="nav-btn" data-view="knowledge" onclick="App.nav('knowledge')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+    MANUAL
+  </button>
+  <button class="nav-btn" data-view="calculator" onclick="App.nav('calculator')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/></svg>
+    CÁLCULO
+  </button>
+  <button class="nav-btn" data-view="profile" onclick="App.nav('profile')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    PERFIL
+  </button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════
+     CAPA MODAL (para contenido de módulos detallados)
+═══════════════════════════════════════════════════════════ -->
+<div id="modalOverlay" style="display:none; position:fixed; inset:0; background:rgba(10,16,22,0.96); z-index:500; overflow-y:auto; padding:0 0 80px 0;">
+  <div id="modalContent" style="padding:1rem; max-width:600px; margin:0 auto;"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT: NÚCLEO DE LA APLICACIÓN
+═══════════════════════════════════════════════════════════ -->
+<script>
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO: SERVICE WORKER (embebido via Blob URL)
+   Estrategia: Cache-First con fallback offline total
+   La app es 100% funcional sin internet tras primer carga
+═══════════════════════════════════════════════════════════ */
+const SW_VERSION = 'protocolo-v2.0';
+
+const swCode = `
+const CACHE = '${SW_VERSION}';
+const OFFLINE_URLS = ['/'];
+
+// Al instalar: cachea la página actual inmediatamente
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(cache => {
+      // No fallamos si no se pueden cachear recursos externos
+      return cache.addAll(OFFLINE_URLS).catch(() => {});
+    }).then(() => self.skipWaiting())
+  );
+});
+
+// Al activar: limpia caches viejos
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+// Estrategia Cache-First: sirve desde cache, va a red si no hay
+self.addEventListener('fetch', e => {
+  // Solo interceptar GETs
+  if (e.request.method !== 'GET') return;
+  
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      if (cached) return cached;
+      
+      return fetch(e.request).then(response => {
+        // Cachear respuestas válidas (no errores, no opacas de cross-origin importantes)
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE).then(cache => cache.put(e.request, clone));
+        }
+        return response;
+      }).catch(() => {
+        // Si falla la red y no hay cache: responde con página offline básica
+        if (e.request.destination === 'document') {
+          return caches.match('/') || new Response(
+            '<html><body style="background:var(--surface);color:var(--warn2);font-family:monospace;padding:2rem;"><h1>OFFLINE</h1><p>Protocolo operacional en modo autónomo.</p></body></html>',
+            { headers: { 'Content-Type': 'text/html' } }
+          );
+        }
+      });
+    })
+  );
+});
+`;
+
+// Registrar Service Worker embebido.
+// Estrategia: intentar data: URL (más compatible que blob: en Android/Samsung).
+// Si falla silenciosamente — la app es 100% funcional sin SW, ya que toda la
+// lógica y el contenido están embebidos en este mismo archivo HTML.
+if ('serviceWorker' in navigator) {
+  try {
+    const swEncoded = 'data:application/javascript;base64,' + btoa(unescape(encodeURIComponent(swCode)));
+    navigator.serviceWorker.register(swEncoded, { scope: './' })
+      .then(reg => console.log('[SW] Registrado OK. Scope:', reg.scope))
+      .catch(() => {
+        // data: URL puede estar bloqueado en file:// — la app sigue operativa sin SW.
+      });
+  } catch(e) {
+    // Fallo silencioso: modo standalone sin Service Worker.
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO: PERSISTENCIA (localStorage avanzado)
+   Guarda: perfil, inventario, estado del grupo, notas
+   Resistente a reinicios forzados del dispositivo
+═══════════════════════════════════════════════════════════ */
+const Storage = {
+  PREFIX: 'protocolo_',
+
+  // Guardar dato serializado con timestamp
+  set(key, value) {
+    try {
+      const payload = { v: value, ts: Date.now() };
+      localStorage.setItem(this.PREFIX + key, JSON.stringify(payload));
+      return true;
+    } catch(e) {
+      console.warn('[Storage] Error guardando:', key, e);
+      return false;
+    }
+  },
+
+  // Recuperar dato
+  get(key, fallback = null) {
+    try {
+      const raw = localStorage.getItem(this.PREFIX + key);
+      if (!raw) return fallback;
+      const parsed = JSON.parse(raw);
+      return parsed.v !== undefined ? parsed.v : fallback;
+    } catch(e) {
+      return fallback;
+    }
+  },
+
+  // Eliminar dato
+  remove(key) {
+    localStorage.removeItem(this.PREFIX + key);
+  },
+
+  // Exportar TODOS los datos como texto plano copiable
+  // Útil si el dispositivo falla: el usuario puede dictar/copiar a papel
+  exportPlain() {
+    const lines = ['=== PROTOCOLO DE SUPERVIVENCIA - BACKUP ==='];
+    lines.push(`FECHA: ${new Date().toISOString()}`);
+    lines.push('');
+    
+    const keys = Object.keys(localStorage)
+      .filter(k => k.startsWith(this.PREFIX));
+    
+    keys.forEach(k => {
+      try {
+        const payload = JSON.parse(localStorage.getItem(k));
+        const cleanKey = k.replace(this.PREFIX, '').toUpperCase();
+        const val = typeof payload.v === 'object' 
+          ? JSON.stringify(payload.v, null, 2) 
+          : String(payload.v);
+        lines.push(`[${cleanKey}]`);
+        lines.push(val);
+        lines.push('');
+      } catch(e) {}
+    });
+    
+    lines.push('=== FIN DEL BACKUP ===');
+    return lines.join('\n');
+  },
+
+  // Limpiar todos los datos (con confirmación en UI)
+  clearAll() {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(this.PREFIX));
+    keys.forEach(k => localStorage.removeItem(k));
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   BASE DE DATOS DE CONOCIMIENTO TÁCTICO
+   Fuentes sintetizadas: FEMA, CDC, Cresson Kearny (Nuclear War
+   Survival Skills), US Army FM 21-76, OPS/OMS, Protección Civil MX
+═══════════════════════════════════════════════════════════ */
+const KB = {
+
+  /* ─── ESCENARIOS DE AMENAZA ─────────────────────────── */
+  scenarios: [
+    {
+      id: 'emp',
+      icon: '⚡',
+      title: 'PULSO ELECTROMAGNÉTICO (EMP)',
+      level: 'CRÍTICO',
+      color: 'red',
+      desc: 'Detonación nuclear de alta altitud o arma EMP dedicada. Destruye electrónica sin blindaje en radio de cientos de km.',
+      immediate: [
+        'PRIMEROS 30 SEG: Desconecta INMEDIATAMENTE todo dispositivo electrónico de enchufes y cargadores. Un EMP secundario puede llegar.',
+        'PRIMEROS 2 MIN: Coloca dispositivos críticos (radio, linterna, baterías) en jaula de Faraday casera (caja metálica con aislante interior).',
+        'PRIMEROS 5 MIN: Evalúa si hay vehículos funcionando. Post-1980 con ECUs probablemente inoperables. Pre-1975 (carburadores mecánicos) pueden funcionar.',
+        'PRIMEROS 15 MIN: Llena TODOS los contenedores de agua disponibles. Las bombas de agua municipales fallarán en horas sin electricidad.',
+        'PRIMERA HORA: Enciende radio AM/FM de transistores (si está protegida). Busca señales de Protección Civil en frecuencias de emergencia.',
+        'PRIMERAS 6 HORAS: Decide quedarte o evacuar basándote en: ubicación urbana/rural, suministros disponibles y amenaza nuclear secundaria.'
+      ],
+      faraday: [
+        'Caja de galletas metálica (tipo lata) con papel aluminio en interior como aislante.',
+        'Horno de microondas apagado (funciona como jaula de Faraday parcial para pulsos de baja energía).',
+        'Bolsa antiestática + papel aluminio multicapa (al menos 3 capas) + cinta adhesiva en bordes.',
+        'Bote de pintura metálico vacío, sellado herméticamente con espuma de poliuretano en tapa.',
+        'PROTEGER: Radio AM/FM de transistores, pilas alcalinas, linterna LED, calculadora solar, GPS básico.'
+      ],
+      barter: [
+        { item: 'Agua potable (500ml)', value: 'MÁXIMO', note: 'Primer día post-colapso, cotización absoluta' },
+        { item: 'Antibióticos (Amoxicilina, Metronidazol)', value: 'MÁXIMO', note: 'Escasez garantizada en 2 semanas' },
+        { item: 'Encendedores (Bic)', value: 'ALTO', note: 'Producción industrial detenida' },
+        { item: 'Alcohol isopropílico 70%+', value: 'ALTO', note: 'Desinfección + combustible de emergencia' },
+        { item: 'Monedas de plata (1 onza)', value: 'ALTO', note: 'Valor intrínseco real, reconocible globalmente' },
+        { item: 'Café, tabaco, alcohol', value: 'ALTO', note: 'Valor adictivo = alta demanda garantizada' },
+        { item: 'Semillas no híbridas (heirloom)', value: 'MEDIO-ALTO', note: 'Producción futura de alimento' },
+        { item: 'Medicamentos OTC (ibuprofeno, etc)', value: 'MEDIO', note: 'Dolor crónico en población' },
+        { item: 'Sal, azúcar, especias', value: 'MEDIO', note: 'Preservación de alimentos' },
+        { item: 'Billetes de papel moneda', value: 'BAJO', note: 'Valor colapsa si sistema bancario falla >30 días' }
+      ]
+    },
+    {
+      id: 'nuclear',
+      icon: '☢',
+      title: 'ATAQUE / ACCIDENTE NUCLEAR',
+      level: 'EXTREMO',
+      color: 'red',
+      desc: 'Detonación nuclear directa o accidente en instalación nuclear. Amenaza combinada: onda de choque, calor, radiación inicial y lluvia radiactiva.',
+      immediate: [
+        'SI VES EL DESTELLO: Arrójate al suelo boca abajo, manos bajo el cuerpo, cabeza alejada de ventanas. La onda de choque llega ~3 min después por cada km de distancia.',
+        'PRIMEROS 15 MIN: Busca el refugio más masivo disponible. Sótanos de edificios de concreto, túneles subterráneos. Profundidad = protección.',
+        'PRIMEROS 30 MIN: Si estás al aire libre y no hay refugio, aléjate de la dirección del viento (verifica con humo/follaje). La nube de hongos indica dirección de fallout.',
+        'PRIMERA HORA: El fallout comienza a caer entre 15-30 minutos post-detonación. Si estás en refugio, PERMANECE ADENTRO. No salgas por ningún motivo.',
+        'PRIMERAS 24 HORAS: Aplica Regla del 7-10. Si radiación inicial = 1000 R/h, a las 7 horas será ~100 R/h, a las 49 horas ~10 R/h.',
+        'PRIMERAS 2 SEMANAS: El 90% del fallout de corta vida decae en 2 semanas. Permanecer en refugio este tiempo puede significar la diferencia entre la vida y la muerte.'
+      ],
+      rule710: true,
+      falloutMX: true,
+      protection: [
+        { layer: 'Tierra/suelo', cm: 90, factor: 1000 },
+        { layer: 'Concreto', cm: 66, factor: 1000 },
+        { layer: 'Ladrillo', cm: 55, factor: 1000 },
+        { layer: 'Agua', cm: 76, factor: 1000 },
+        { layer: 'Arena', cm: 100, factor: 1000 },
+        { layer: 'Madera', cm: 150, factor: 1000 },
+        { layer: 'Acero', cm: 21, factor: 1000 }
+      ]
+    },
+    {
+      id: 'collapse',
+      icon: '⚠',
+      title: 'COLAPSO DE INFRAESTRUCTURA',
+      level: 'GRAVE',
+      color: 'amber',
+      desc: 'Fallo de red eléctrica, agua o telecomunicaciones por >72 horas. Puede ser causado por evento natural, ciberataque o cascada de fallos.',
+      immediate: [
+        'HORA 0-6: Llena bañeras, cubetas y todos los contenedores. Agua municipal falla cuando las bombas eléctricas se queden sin combustible de generador (~12-48 hrs).',
+        'HORA 6-24: Inventario de alimentos. Prioriza perecederos del refrigerador primero (se echan a perder en 4 hrs sin electricidad), luego congelador (24-48 hrs), luego no-perecederos.',
+        'HORA 24-72: Evalúa fuentes de calor alternativas si aplica. Decide sobre evacuación si eres urbano y no tienes suministros >7 días.',
+        'DÍA 3-7: Si el colapso continúa, la seguridad pública deteriora. Establece turnos de vigilancia y limita la visibilidad de tus suministros.',
+        'DÍA 7+: Considera relaciones de trueque con vecinos de confianza. La colaboración comunal historicamente supera la estrategia de lobo solitario.',
+        'SEMANA 2+: Sin refrigeración, el saneamiento se vuelve crítico. Establece latrina a mínimo 60m de fuentes de agua y zona de preparación de alimentos.'
+      ]
+    },
+    {
+      id: 'epidemic',
+      icon: '🦠',
+      title: 'EPIDEMIA / PANDEMIA SEVERA',
+      level: 'GRAVE',
+      color: 'amber',
+      desc: 'Brote de patógeno de alta transmisibilidad con colapso del sistema sanitario. El riesgo no es solo la enfermedad sino la interrupción de servicios esenciales.',
+      immediate: [
+        'FASE ALERTA: Abastece suministros para 60 días ANTES de que se declare pandemia. Las tiendas se desabastecen en 48-72 horas tras declaración oficial.',
+        'FASE COLAPSO: Limita contacto a burbuja de confianza conocida. Cuarentena de 14 días para cualquier nuevo integrante del grupo.',
+        'HIGIENE CRÍTICA: Lavado de manos 20 segundos con jabón es más efectivo que cualquier mascarilla improvisada contra patógenos de contacto.',
+        'AGUA Y SANEAMIENTO: En colapso sanitario, la diarrea infecciosa mata más que el patógeno primario. Hierve o desinfecta toda el agua.',
+        'TRIAGE CASERO: Separa enfermos del grupo sano. Cuarto de aislamiento, utensilios separados, cuidador designado con máxima protección.',
+        'DOCUMENTACIÓN: Registra síntomas, fechas, medicamentos administrados. Información crítica si llegas a un médico tardíamente.'
+      ]
+    }
+  ],
+
+  /* ─── MÓDULOS DE CONOCIMIENTO ───────────────────────── */
+  knowledge: [
+    {
+      id: 'water',
+      icon: '💧',
+      title: 'AGUA: OBTENCIÓN Y PURIFICACIÓN',
+      tag: 'VITAL',
+      tagColor: 'blue',
+      content: `
+        <div class="section-title">REGLA FUNDAMENTAL DE SUPERVIVENCIA HÍDRICA</div>
+        <p style="font-size:0.8rem; margin-bottom:1rem; color:var(--warn2);">
+          Un humano adulto muere sin agua en 3-5 días (temperatura normal) o en menos de 24 horas en calor extremo o con diarrea activa. El agua es la prioridad #1 absoluta.
+        </p>
+
+        <div class="section-title">NECESIDADES MÍNIMAS DIARIAS</div>
+        <table class="table-tactical" style="margin-bottom:1rem;">
+          <tr><th>USO</th><th>LITROS/DÍA</th></tr>
+          <tr><td>Bebida (supervivencia mínima)</td><td style="color:var(--danger2);">2.0 L</td></tr>
+          <tr><td>Bebida (actividad moderada)</td><td>2.5-3.5 L</td></tr>
+          <tr><td>Higiene básica (manos)</td><td>1.0 L</td></tr>
+          <tr><td>Preparación de alimentos</td><td>0.5-1.0 L</td></tr>
+          <tr><td>TOTAL MÍNIMO OPERACIONAL</td><td style="color:var(--success2);">4.0 L</td></tr>
+        </table>
+
+        <div class="section-title">MÉTODOS DE PURIFICACIÓN (de menor a mayor confiabilidad)</div>
+        
+        <div class="panel" style="margin-bottom:0.5rem;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+            <span style="color:var(--warn2); font-size:0.8rem; font-weight:bold;">1. EBULLICIÓN</span>
+            <span class="tag tag-green">MÁXIMA CONFIANZA</span>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text2);">
+            Hervir 1 minuto completo a nivel del mar (3 minutos a más de 2,000 m altitud). Elimina: bacterias, virus, protozoos. NO elimina químicos ni metales pesados. Deja enfriar en recipiente cerrado.
+          </p>
+        </div>
+
+        <div class="panel" style="margin-bottom:0.5rem;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+            <span style="color:var(--warn2); font-size:0.8rem; font-weight:bold;">2. CLORO DOMÉSTICO (hipoclorito de sodio)</span>
+            <span class="tag tag-amber">ALTA CONFIANZA</span>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text2);">
+            Cloro al 5-6%: 8 gotas por litro de agua CLARA (16 gotas si turbia). Esperar 30 minutos antes de beber. Si el agua huele ligeramente a cloro, está tratada. Efectivo contra bacterias y muchos virus. Menos efectivo contra Cryptosporidium.
+          </p>
+        </div>
+
+        <div class="panel" style="margin-bottom:0.5rem;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+            <span style="color:var(--warn2); font-size:0.8rem; font-weight:bold;">3. DESTILACIÓN SOLAR</span>
+            <span class="tag tag-blue">EMERGENCIA</span>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text2);">
+            Cava un hoyo de 90cm diámetro x 45cm profundidad. Coloca recipiente colector en el centro. Coloca plástico transparente sobre el hoyo con piedra pequeña en el centro (crea punto de goteo hacia el recipiente). Rendimiento: 0.5-1 L/día en clima cálido. Ventaja: elimina incluso agua salada o contaminada con químicos.
+          </p>
+        </div>
+
+        <div class="panel" style="margin-bottom:0.5rem;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+            <span style="color:var(--warn2); font-size:0.8rem; font-weight:bold;">4. FILTRO POR CAPAS DE SEDIMENTO</span>
+            <span class="tag tag-amber">PRE-TRATAMIENTO</span>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text2); margin-bottom:0.5rem;">
+            ESTE MÉTODO SÓLO CLARIFICA EL AGUA. Siempre combinar con ebullición o cloro posterior.
+          </p>
+          <p style="font-size:0.75rem; color:var(--text2);">
+            Corta botella de plástico 2L con fondo hacia arriba. Capas de abajo a arriba:
+            1. Tela o trapo limpio (primera capa)
+            2. Carbón vegetal triturado (~5cm) — elimina sabores y algunos químicos
+            3. Arena fina (~10cm)
+            4. Grava gruesa (~10cm)  
+            5. Piedras grandes (soporte)
+            Deja pasar el agua 2-3 veces. El agua resultante debe verse clara pero NO es potable sin tratamiento adicional.
+          </p>
+        </div>
+
+        <div class="section-title">FUENTES DE AGUA EN CONTEXTO URBANO POST-COLAPSO</div>
+        <div class="panel">
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.4rem;">✓ <strong style="color:var(--warn2);">Tanque de inodoro</strong> (parte superior, no la taza): ~15 litros de agua limpia de uso doméstico. Usar antes que cualquier otro recurso.</li>
+            <li style="margin-bottom:0.4rem;">✓ <strong style="color:var(--warn2);">Calentador de agua</strong>: 150-300 litros almacenados. Conecta una manguera al drenaje inferior.</li>
+            <li style="margin-bottom:0.4rem;">✓ <strong style="color:var(--warn2);">Tuberías domésticas</strong>: Al cortar el suministro, queda agua atrapada. Abre llave del piso más alto, recoge en el más bajo.</li>
+            <li style="margin-bottom:0.4rem;">⚠ <strong style="color:var(--warn2);">Agua de lluvia</strong>: Evita las primeras lluvias post-evento industrial o nuclear. Recolecta solo si no hay contaminación conocida.</li>
+            <li style="margin-bottom:0.4rem;">✗ <strong style="color:var(--danger2);">Piscinas/albercas</strong>: El cloro residual no es suficiente. Tratar siempre antes de beber.</li>
+          </ul>
+        </div>
+      `
+    },
+    {
+      id: 'medicine',
+      icon: '🏥',
+      title: 'MEDICINA: TRIAGE Y EMERGENCIAS',
+      tag: 'CRÍTICO',
+      tagColor: 'red',
+      content: `
+        <div class="panel panel-danger">
+          <p style="font-size:0.75rem; color:var(--danger2); margin:0;">
+            ⚠ ADVERTENCIA: Esta información es para situaciones donde el acceso a atención médica profesional es imposible. En condiciones normales, busca siempre atención médica certificada.
+          </p>
+        </div>
+
+        <div class="section-title">SISTEMA START DE TRIAGE (Clasificación de lesionados)</div>
+        <p style="font-size:0.75rem; color:var(--text2); margin-bottom:0.75rem;">
+          En un evento con múltiples lesionados y recursos limitados, el triage determina quién recibe atención primero según probabilidad de supervivencia.
+        </p>
+        
+        <table class="table-tactical" style="margin-bottom:1rem;">
+          <tr>
+            <th>COLOR</th>
+            <th>ESTADO</th>
+            <th>ACCIÓN</th>
+          </tr>
+          <tr>
+            <td><span class="tag tag-red">ROJO</span></td>
+            <td style="font-size:0.7rem;">Urgencia extrema. Respira, tiene pulso, pero condición amenaza vida en <60min</td>
+            <td style="font-size:0.7rem; color:var(--danger2);">ATENCIÓN INMEDIATA</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-amber">AMARILLO</span></td>
+            <td style="font-size:0.7rem;">Urgente. Lesiones graves pero estables. Puede esperar 2-4 horas</td>
+            <td style="font-size:0.7rem; color:var(--warn2);">ATENCIÓN DIFERIDA</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-green">VERDE</span></td>
+            <td style="font-size:0.7rem;">Lesiones leves. "Heridos que caminan". No peligro vital inmediato</td>
+            <td style="font-size:0.7rem; color:var(--success2);">ATENCIÓN MÍNIMA</td>
+          </tr>
+          <tr>
+            <td><span style="font-size:0.6rem; color:var(--text3); background:var(--surface2); padding:2px 6px; border-radius:2px;">NEGRO</span></td>
+            <td style="font-size:0.7rem;">No respira ni con apertura de vía aérea. Sin recursos, no sobrevivirá</td>
+            <td style="font-size:0.7rem; color:var(--text3);">EXPECTANTE</td>
+          </tr>
+        </table>
+
+        <div class="section-title">CONTROL DE HEMORRAGIAS SEVERAS</div>
+        <div class="panel">
+          <ol style="list-style:decimal; padding-left:1.2rem; font-size:0.75rem; color:var(--text2); margin:0;">
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--warn2);">Presión directa CONSTANTE</strong>: Tela limpia o ropa sobre la herida. Presionar FUERTE sin soltar mínimo 10 minutos. Si se empapa, AGREGAR más tela encima — NO retirar la primera.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--warn2);">Torniquete en extremidades</strong>: Solo si la hemorragia es en brazo o pierna y la presión directa falla. Tira de 5-7cm de ancho (evita cables). Aplicar 5-7cm por encima de la herida. Apretar hasta detener sangrado. REGISTRAR HORA exacta de aplicación — máximo 2 horas.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--warn2);">Elevación</strong>: Si no hay fractura sospechada, elevar la extremidad por encima del nivel del corazón.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--warn2);">Packing de heridas profundas</strong>: Para heridas en ingle, axila o cuello donde no se puede poner torniquete: empacar la herida directamente con tela y presionar desde adentro.</li>
+          </ol>
+        </div>
+
+        <div class="section-title">INFECCIONES SIN ANTIBIÓTICOS COMERCIALES</div>
+        <div class="panel">
+          <p style="font-size:0.75rem; color:var(--text2); margin-bottom:0.5rem;">
+            En ausencia de antibióticos farmacéuticos, estas son las opciones con mayor evidencia de eficacia relativa (ninguna reemplaza a los antibióticos reales):
+          </p>
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.5rem;"><strong style="color:var(--success2);">Miel pura (no procesada)</strong>: Propiedades antimicrobianas documentadas. Para heridas superficiales, cubrir directamente con una capa de ~2mm. El peróxido de hidrógeno que libera inhibe muchas bacterias. Cambiar cada 24-48 hrs.</li>
+            <li style="margin-bottom:0.5rem;"><strong style="color:var(--success2);">Solución salina (agua + sal)</strong>: Irrigar heridas con 9g de sal por litro de agua previamente hervida. Limpieza mecánica es más importante que el agente antibacterial.</li>
+            <li style="margin-bottom:0.5rem;"><strong style="color:var(--success2);">Vendaje limpio + inmovilización</strong>: La mayoría de heridas menores se curan solas con limpieza y evitar contaminación. Cambiar vendajes cada 24 hrs.</li>
+            <li style="margin-bottom:0.5rem;"><strong style="color:var(--warn2);">Aceite de árbol de té (1-2%)</strong>: Actividad antimicrobiana in vitro demostrada. Efectividad clínica en heridas: modesta. Nunca ingerir.</li>
+            <li style="margin-bottom:0.5rem;"><strong style="color:var(--danger2);">SEÑALES DE ALARMA que requieren evacuación médica inmediata</strong>: Fiebre >39°C, líneas rojas irradiando desde herida (septicemia en progreso), pus verde/café/maloliente, confusión o inconsciencia en el paciente, herida que no cierra en 7+ días.</li>
+          </ul>
+        </div>
+
+        <div class="section-title">BOTIQUÍN DE SUPERVIVENCIA MÍNIMO</div>
+        <table class="table-tactical">
+          <tr><th>ARTÍCULO</th><th>USO</th></tr>
+          <tr><td>Ibuprofeno 400mg</td><td style="font-size:0.7rem;">Dolor, fiebre, inflamación</td></tr>
+          <tr><td>Loperamida (Imodium)</td><td style="font-size:0.7rem;">Diarrea — deshidratación es la amenaza real</td></tr>
+          <tr><td>Antihistamínico (cetirizina)</td><td style="font-size:0.7rem;">Alergias, reacciones</td></tr>
+          <tr><td>Omeprazol 20mg</td><td style="font-size:0.7rem;">Gastritis por estrés (muy común en crisis)</td></tr>
+          <tr><td>Alcohol 70% isopropílico</td><td style="font-size:0.7rem;">Desinfección de instrumentos y piel</td></tr>
+          <tr><td>Povidona yodada</td><td style="font-size:0.7rem;">Desinfección de heridas (no en quemaduras)</td></tr>
+          <tr><td>Gasa estéril + vendas</td><td style="font-size:0.7rem;">Apósitos, control de sangrado</td></tr>
+          <tr><td>Suero oral (sobres)</td><td style="font-size:0.7rem;">Deshidratación (hacer: 1L agua + 6 cditas azúcar + 1/2 cdita sal)</td></tr>
+          <tr><td>Amoxicilina 500mg</td><td style="font-size:0.7rem;">Antibiótico amplio espectro si accesible</td></tr>
+          <tr><td>Clamoxyl/Metronidazol</td><td style="font-size:0.7rem;">Infecciones anaerobias, dentales</td></tr>
+        </table>
+      `
+    },
+    {
+      id: 'security',
+      icon: '🛡',
+      title: 'SEGURIDAD: EVASIÓN Y OCULTAMIENTO',
+      tag: 'TÁCTICO',
+      tagColor: 'amber',
+      content: `
+        <div class="section-title">FILOSOFÍA DE SEGURIDAD EN COLAPSO</div>
+        <p style="font-size:0.8rem; color:var(--warn2); margin-bottom:0.75rem;">
+          La mejor estrategia de seguridad es la invisibilidad. El 95% de la violencia en colapsos sociales busca oportunidades fáciles. No ser una oportunidad es más efectivo que defenderse activamente.
+        </p>
+
+        <div class="section-title">PRINCIPIO OPSEC: SEGURIDAD OPERACIONAL</div>
+        <div class="panel">
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.4rem;">⬛ <strong style="color:var(--warn2);">Blackout nocturno</strong>: Cubre TODAS las ventanas con tela oscura. La luz visible en oscuridad total atrae atención a 2km+.</li>
+            <li style="margin-bottom:0.4rem;">⬛ <strong style="color:var(--warn2);">Control de olores</strong>: El olor a cocción puede detectarse a 500m+ en ausencia de tráfico. Cocina al mediodía cuando hay más actividad ambiental. Evita alimentos de olor intenso.</li>
+            <li style="margin-bottom:0.4rem;">⬛ <strong style="color:var(--warn2);">Perfil bajo de ruido</strong>: Generadores y radios son detectables. Usa horarios de mayor ruido ambiental para actividades ruidosas.</li>
+            <li style="margin-bottom:0.4rem;">⬛ <strong style="color:var(--warn2);">Discreción de suministros</strong>: Nunca menciones cuánto tienes almacenado. Ni a vecinos que parezcan confiables. La información viaja en colapsos.</li>
+            <li style="margin-bottom:0.4rem;">⬛ <strong style="color:var(--warn2);">Apariencia de escasez</strong>: Si alguien observa tu ubicación, proyectar apariencia de pocos recursos reduce dramaticamente el riesgo de ser objetivo.</li>
+          </ul>
+        </div>
+
+        <div class="section-title">OCULTAMIENTO TÉRMICO (contra visión infrarroja)</div>
+        <div class="panel">
+          <p style="font-size:0.75rem; color:var(--text2); margin-bottom:0.5rem;">
+            Las cámaras de visión nocturna y térmica están disponibles en el mercado civil y son usadas por actores estatales y no-estatales en zonas de conflicto.
+          </p>
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.4rem;">🌡 <strong style="color:var(--warn2);">Manta de emergencia (mylar/aluminio)</strong>: Refleja ~80% de la firma infrarroja corporal. Disponible en farmacias. Cubrirse completamente reduce firma térmica significativamente.</li>
+            <li style="margin-bottom:0.4rem;">🌡 <strong style="color:var(--warn2);">Vegetación densa</strong>: La masa vegetal húmeda absorbe/dispersa calor. Permanecer bajo follaje denso reduce visibilidad térmica.</li>
+            <li style="margin-bottom:0.4rem;">🌡 <strong style="color:var(--warn2);">Terreno frío</strong>: Agua fría, barro húmedo, sombra profunda reducen el contraste térmico entre el cuerpo y el entorno.</li>
+            <li style="margin-bottom:0.4rem;">🌡 <strong style="color:var(--warn2);">Movimiento lento</strong>: El movimiento rápido aumenta la temperatura de la ropa por fricción y convección, aumentando la firma térmica.</li>
+          </ul>
+        </div>
+
+        <div class="section-title">SEÑALES DE PELIGRO AMBIENTAL</div>
+        <div class="panel panel-danger">
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.4rem;">🔴 Grupos de personas cargando armas o herramientas improvisadas moviéndose con propósito definido.</li>
+            <li style="margin-bottom:0.4rem;">🔴 Vehículos circulando a velocidad reducida con personas observando propiedades.</li>
+            <li style="margin-bottom:0.4rem;">🔴 Humo denso en dirección de su ubicación (incendio intencional como táctica de desalojo).</li>
+            <li style="margin-bottom:0.4rem;">🔴 Ausencia súbita de animales o aves en un área previamente activa (señal de presencia humana).</li>
+            <li style="margin-bottom:0.4rem;">🟡 Preguntas excesivamente específicas sobre suministros o número de personas en el grupo.</li>
+            <li style="margin-bottom:0.4rem;">🟡 "Reconocedores": personas que regresan múltiples veces a observar sin razón aparente.</li>
+          </ul>
+        </div>
+      `
+    },
+    {
+      id: 'fallout_mx',
+      icon: '🌎',
+      title: 'FALLOUT: MÉXICO, C.A. Y CARIBE',
+      tag: 'REGIONAL',
+      tagColor: 'amber',
+      content: `
+        <div class="section-title">ANÁLISIS DE RIESGO RADIOLÓGICO REGIONAL</div>
+        <p style="font-size:0.75rem; color:var(--text2); margin-bottom:0.75rem;">
+          México y Centroamérica no poseen instalaciones de armas nucleares, pero están en zona de influencia de patrones de viento del Pacífico Norte y Atlántico. El riesgo principal no es detonación directa sino lluvia radiactiva (fallout) de eventos en Norteamérica o el Caribe.
+        </p>
+
+        <div class="section-title">INSTALACIONES NUCLEARES REGIONALES DE RIESGO</div>
+        <table class="table-tactical" style="margin-bottom:1rem;">
+          <tr><th>INSTALACIÓN</th><th>UBICACIÓN</th><th>RIESGO</th></tr>
+          <tr>
+            <td style="font-size:0.72rem;">Central Nucleoeléctrica Laguna Verde</td>
+            <td style="font-size:0.72rem;">Veracruz, México</td>
+            <td><span class="tag tag-amber">MODERADO</span></td>
+          </tr>
+          <tr>
+            <td style="font-size:0.72rem;">Turquía Point / Turkey Point</td>
+            <td style="font-size:0.72rem;">Florida, EEUU</td>
+            <td><span class="tag tag-amber">REGIONAL</span></td>
+          </tr>
+          <tr>
+            <td style="font-size:0.72rem;">Múltiples plantas en Costa del Golfo EEUU</td>
+            <td style="font-size:0.72rem;">Texas-Florida</td>
+            <td><span class="tag tag-amber">PATRÓN VIENTO</span></td>
+          </tr>
+        </table>
+
+        <div class="section-title">PATRONES DE VIENTO Y DIRECCIÓN DE FALLOUT</div>
+        <div class="panel">
+          <p style="font-size:0.75rem; color:var(--text2); margin-bottom:0.5rem;">
+            Los vientos predominantes en la región siguen patrones estacionales críticos para evaluar riesgo de fallout:
+          </p>
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--warn2);">Corriente en Chorro Subtropical (verano)</strong>: Flujo Oeste→Este sobre México. Un evento en California/Arizona llevaría fallout hacia el Golfo. Un evento en el Golfo afectaría el sureste de México y Cuba.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--warn2);">Alisios del NE (invierno)</strong>: Viento dominante sobre Caribe de NE a SO. Fallout de EEUU noreste puede alcanzar Cuba, Jamaica, Haití en 48-72 horas.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--warn2);">Temporada de Huracanes (jun-nov)</strong>: Circulación ciclónica distribuye partículas radiactivas en espiral. Mayor dispersión pero mayor área de cobertura.</li>
+          </ul>
+        </div>
+
+        <div class="section-title">TIEMPO DE LLEGADA DE FALLOUT (estimado)</div>
+        <table class="table-tactical" style="margin-bottom:1rem;">
+          <tr><th>ORIGEN</th><th>DESTINO</th><th>T-LLEGADA</th></tr>
+          <tr><td style="font-size:0.72rem;">Ciudad de México (evento directo)</td><td style="font-size:0.72rem;">—</td><td><span class="tag tag-red">15-30 min</span></td></tr>
+          <tr><td style="font-size:0.72rem;">Costa del Golfo EEUU</td><td style="font-size:0.72rem;">NE México</td><td><span class="tag tag-red">6-18 hrs</span></td></tr>
+          <tr><td style="font-size:0.72rem;">Laguna Verde, Veracruz</td><td style="font-size:0.72rem;">Zona metropolitana VER</td><td><span class="tag tag-red">1-4 hrs</span></td></tr>
+          <tr><td style="font-size:0.72rem;">Cuba (evento)</td><td style="font-size:0.72rem;">Yucatán/Cancún</td><td><span class="tag tag-amber">12-36 hrs</span></td></tr>
+          <tr><td style="font-size:0.72rem;">EEUU noreste</td><td style="font-size:0.72rem;">C. América norte</td><td><span class="tag tag-amber">24-72 hrs</span></td></tr>
+        </table>
+
+        <div class="section-title">REFUGIOS NATURALES EN TOPOGRAFÍA REGIONAL</div>
+        <div class="panel">
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--success2);">Altiplano central (CDMX, Puebla, Querétaro)</strong>: La masa montañosa de la Sierra Madre actúa como barrera parcial contra partículas transportadas por viento. Edificios de concreto de múltiples pisos ofrecen protección aceptable.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--warn2);">Zonas costeras del Golfo (Veracruz, Tamaulipas)</strong>: Alta vulnerabilidad. Topografía plana, alta humedad. En caso de evento en Laguna Verde, evacuación INMEDIATA hacia el interior es la única opción viable.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--warn2);">Península de Yucatán</strong>: Sin montañas ni abrigo natural significativo. El subsuelo kárstico (cenotes, cuevas) puede ofrecer refugio temporal. Dependencia crítica de agua de lluvia o cenotes.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--success2);">Zona del Istmo y Oaxaca</strong>: Cadenas montañosas perpendiculares al viento dominante crean zonas de sombra. El sotavento de las sierras puede reducir la deposición de partículas.</li>
+          </ul>
+        </div>
+
+        <div class="section-title">CONTAMINACIÓN DE AGUA Y SUELO (post-fallout)</div>
+        <div class="panel panel-danger">
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.4rem;">☢ <strong style="color:var(--danger2);">Agua superficial (ríos, lagos)</strong>: Contaminada inmediatamente. Evitar consumo sin tratamiento avanzado durante mínimo 30 días.</li>
+            <li style="margin-bottom:0.4rem;">☢ <strong style="color:var(--warn2);">Agua subterránea (pozos)</strong>: Relativamente protegida durante las primeras semanas por la capa de suelo sobre el acuífero.</li>
+            <li style="margin-bottom:0.4rem;">☢ <strong style="color:var(--danger2);">Vegetación y cultivos</strong>: Contaminados superficialmente. Lavar ABUNDANTEMENTE con agua limpia. No consumir en las primeras 2 semanas post-fallout.</li>
+            <li style="margin-bottom:0.4rem;">☢ <strong style="color:var(--warn2);">Animales domésticos/silvestres</strong>: Si se alimentaron de pasto o agua contaminada, pueden concentrar isótopos en tejidos. Esperar 30+ días si es posible.</li>
+          </ul>
+        </div>
+      `
+    },
+    {
+      id: 'food',
+      icon: '🌾',
+      title: 'ALIMENTACIÓN DE EMERGENCIA',
+      tag: 'ESENCIAL',
+      tagColor: 'green',
+      content: `
+        <div class="section-title">CALORÍAS MÍNIMAS DE SUPERVIVENCIA</div>
+        <table class="table-tactical" style="margin-bottom:1rem;">
+          <tr><th>CONDICIÓN</th><th>CALORÍAS/DÍA</th></tr>
+          <tr><td>Reposo total (cama)</td><td>1,200 kcal</td></tr>
+          <tr><td>Actividad mínima</td><td>1,500 kcal</td></tr>
+          <tr><td>Actividad moderada (marcha, trabajo)</td><td>2,000-2,500 kcal</td></tr>
+          <tr><td>Actividad intensa (construcción, evasión)</td><td>3,000-4,000 kcal</td></tr>
+        </table>
+
+        <div class="section-title">ALIMENTOS DE MÁXIMA DENSIDAD CALÓRICA</div>
+        <div class="panel">
+          <table class="table-tactical">
+            <tr><th>ALIMENTO</th><th>KCAL/100g</th><th>VIDA ÚTIL</th></tr>
+            <tr><td>Aceite vegetal</td><td style="color:var(--success2);">884</td><td>2-4 años</td></tr>
+            <tr><td>Manteca/grasa</td><td style="color:var(--success2);">900</td><td>1-2 años</td></tr>
+            <tr><td>Nueces/almendras</td><td>607</td><td>1-2 años</td></tr>
+            <tr><td>Chocolate negro >70%</td><td>590</td><td>2+ años</td></tr>
+            <tr><td>Arroz blanco seco</td><td>365</td><td>25-30 años</td></tr>
+            <tr><td>Frijol seco</td><td>340</td><td>25-30 años</td></tr>
+            <tr><td>Harina de trigo</td><td>364</td><td>5-10 años (sellado)</td></tr>
+            <tr><td>Miel</td><td>304</td><td>Indefinida si sellada</td></tr>
+            <tr><td>Leche en polvo</td><td>500</td><td>2-10 años</td></tr>
+            <tr><td>Sal</td><td>0 (electrolitos)</td><td>Indefinida</td></tr>
+          </table>
+        </div>
+
+        <div class="section-title">REGLA 3-30-90</div>
+        <div class="panel panel-green">
+          <p style="font-size:0.75rem; color:var(--text2); margin:0;">
+            <strong style="color:var(--success2);">3 días</strong> sin agua = muerte probable.<br/>
+            <strong style="color:var(--warn2);">30 días</strong> sin comida = muerte probable (en condiciones de actividad y frío).<br/>
+            <strong style="color:var(--text3);">90 días</strong> con suministros básicos = tiempo suficiente para que la mayoría de crisis se estabilicen.<br/>
+            Objetivo mínimo de almacenamiento: <strong style="color:var(--success2);">suministros para 90 días por persona</strong>.
+          </p>
+        </div>
+
+        <div class="section-title">SEÑALES DE DESNUTRICIÓN TEMPRANA</div>
+        <div class="panel">
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.3rem;">• Fatiga extrema desproporcionada a la actividad realizada</li>
+            <li style="margin-bottom:0.3rem;">• Mareo al ponerse de pie (hipotensión ortostática por falta de sal/agua)</li>
+            <li style="margin-bottom:0.3rem;">• Irritabilidad extrema y dificultad de concentración (hipoglicemia)</li>
+            <li style="margin-bottom:0.3rem;">• Edema en tobillos/pies (deficiencia proteica severa, kwashiorkor)</li>
+            <li style="margin-bottom:0.3rem;">• Encías sangrantes (deficiencia de vitamina C, escorbuto en 3-4 semanas)</li>
+          </ul>
+        </div>
+      `
+    },
+    {
+      id: 'comms',
+      icon: '📡',
+      title: 'COMUNICACIONES DE EMERGENCIA',
+      tag: 'OPERACIONAL',
+      tagColor: 'blue',
+      content: `
+        <div class="section-title">JERARQUÍA DE COMUNICACIONES EN COLAPSO</div>
+        <p style="font-size:0.75rem; color:var(--text2); margin-bottom:1rem;">
+          Las redes celulares colapsan en las primeras 2-4 horas de cualquier emergencia masiva por sobrecarga de tráfico. Tener medios alternativos NO es opcional.
+        </p>
+
+        <div class="section-title">FRECUENCIAS DE EMERGENCIA — JALISCO / MÉXICO</div>
+        <table class="table-tactical" style="margin-bottom:1rem;">
+          <tr><th>FRECUENCIA</th><th>USO</th><th>TIPO</th></tr>
+          <tr><td style="color:var(--accent2);">155.100 MHz FM</td><td style="font-size:0.7rem;">Protección Civil Jalisco (principal)</td><td><span class="tag tag-red">CRÍTICO</span></td></tr>
+          <tr><td style="color:var(--accent2);">155.250 MHz FM</td><td style="font-size:0.7rem;">Bomberos Guadalajara</td><td><span class="tag tag-red">CRÍTICO</span></td></tr>
+          <tr><td style="color:var(--accent2);">167.475 MHz FM</td><td style="font-size:0.7rem;">Cruz Roja Jalisco</td><td><span class="tag tag-amber">URGENTE</span></td></tr>
+          <tr><td style="color:var(--accent2);">460.0125 MHz UHF</td><td style="font-size:0.7rem;">SEDENA (Ejército MX)</td><td><span class="tag tag-amber">URGENTE</span></td></tr>
+          <tr><td style="color:var(--accent2);">162.400 MHz</td><td style="font-size:0.7rem;">NOAA Weather Radio (recepción)</td><td><span class="tag tag-blue">INFO</span></td></tr>
+          <tr><td style="color:var(--warn2);">156.800 MHz (CH16)</td><td style="font-size:0.7rem;">VHF Marina — Distress Internacional</td><td><span class="tag tag-blue">MARINA</span></td></tr>
+          <tr><td style="color:var(--warn2);">AM 990 kHz</td><td style="font-size:0.7rem;">Radio Jalisco (estatal, emergencias)</td><td><span class="tag tag-green">AM/FM</span></td></tr>
+          <tr><td style="color:var(--warn2);">FM 94.3 MHz</td><td style="font-size:0.7rem;">Radio Metrópoli (alertas civiles GDL)</td><td><span class="tag tag-green">AM/FM</span></td></tr>
+        </table>
+
+        <div class="section-title">NÚMEROS DE EMERGENCIA JALISCO</div>
+        <table class="table-tactical" style="margin-bottom:1rem;">
+          <tr><th>SERVICIO</th><th>NÚMERO</th></tr>
+          <tr><td>Emergencias (único)</td><td style="color:var(--danger2); font-size:1rem; font-weight:bold;">911</td></tr>
+          <tr><td>Protección Civil Jalisco</td><td style="color:var(--accent2);">33-3818-2200</td></tr>
+          <tr><td>Cruz Roja Jalisco</td><td style="color:var(--accent2);">33-3614-5600</td></tr>
+          <tr><td>CONAGUA (inundaciones)</td><td style="color:var(--accent2);">01-800-714-0014</td></tr>
+          <tr><td>CFE (cortes eléctricos)</td><td style="color:var(--accent2);">071</td></tr>
+          <tr><td>Gas Natural (fugas)</td><td style="color:var(--danger2);">800-000-0030</td></tr>
+          <tr><td>CEAS Jalisco (agua)</td><td style="color:var(--accent2);">33-3668-1515</td></tr>
+        </table>
+
+        <div class="section-title">RADIO TRANSCEPTOR: PROTOCOLO DE USO</div>
+        <div class="panel panel-blue">
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--accent2);">Baofeng UV-5R o similar</strong>: Radio de dos bandas (VHF/UHF) de bajo costo (~400 pesos). Alcance campo abierto: 5-10 km. Urbano: 2-4 km. Con antena externa: 20+ km.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--accent2);">Protocolo de llamada</strong>: "PROTOCOLO BASE, aquí [nombre], en [ubicación], con [mensaje], cambio." Siempre terminar con "cambio" (listo para recibir) o "corto" (fin de comunicación).</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--accent2);">Canal de guardia</strong>: Mantener un radio escuchando CH16 (emergencias) mientras usas otro canal para comunicación interna del grupo.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--warn2);">NUNCA transmitir</strong>: ubicación exacta de suministros, número de personas del grupo, rutas de evacuación planeadas. El espectro de radio es público.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--success2);">Señales visuales</strong>: Si el radio falla, establece señales preacordadas con tu grupo: 1 flash de linterna = OK, 2 flashes = necesito ayuda, 3 flashes = evacuación inmediata.</li>
+          </ul>
+        </div>
+
+        <div class="section-title">COMUNICACIÓN SIN TECNOLOGÍA</div>
+        <div class="panel">
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--text1);">Punto de reunión preestablecido</strong>: Define con tu familia/grupo UN lugar de encuentro si se separan. Ejemplo: "Si nos separamos, nos reunimos en el parque X a las 18:00 hrs."</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--text1);">Mensajes en papel</strong>: Deja nota visible en la puerta de tu casa si evacuas: fecha, hora, destino, ruta tomada. Usa marcadores permanentes en bolsa zip sellada.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--text1);">Código Morse básico</strong>: SOS = ··· — — — ··· (3 cortos, 3 largos, 3 cortos). Funciona con linterna, espejo, piedras en el suelo o sonido.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--text1);">Señales de tierra-aire</strong>: Para ser visto desde helicóptero: V = necesito ayuda, X = necesito atención médica, → = me dirijo en esta dirección. Usar ropa brillante, rocas o ramas grandes (mínimo 3m de altura).</li>
+          </ul>
+        </div>
+      `
+    },
+    {
+      id: 'earthquake',
+      icon: '🌍',
+      title: 'SISMOS: PROTOCOLO JALISCO',
+      tag: 'JALISCO',
+      tagColor: 'red',
+      content: `
+        <div class="panel panel-danger">
+          <p style="font-size:0.75rem; color:var(--danger2); margin:0;">
+            ⚠ Jalisco tiene ALTA sismicidad. El estado está sobre la Placa de Rivera y la Trinchera Mesoamericana. Los sismos históricos más severos han tenido magnitudes de hasta 8.0 Mw (Manzanillo 1932). El SASMEX (Sistema de Alerta Sísmica Mexicano) opera en la región con ~60 segundos de aviso para sismos de subducción.
+          </p>
+        </div>
+
+        <div class="section-title">PROTOCOLO ANTES, DURANTE Y DESPUÉS</div>
+
+        <div class="panel panel-warn" style="margin-bottom:0.5rem;">
+          <div style="color:var(--warn2); font-size:0.8rem; font-weight:bold; margin-bottom:0.5rem;">▲ ANTES — PREPARACIÓN</div>
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.3rem;">• Asegura libreros, televisores, calentadores y objetos pesados a paredes.</li>
+            <li style="margin-bottom:0.3rem;">• Conoce la estructura de tu edificio: identifica muros de carga, columnas y zonas de triangulación segura.</li>
+            <li style="margin-bottom:0.3rem;">• Ten mochila de emergencia lista (ver módulo BASE): agua 72hrs, documentos, radio, linterna, botiquín.</li>
+            <li style="margin-bottom:0.3rem;">• Instala la app SASMEX o CIRES en tu teléfono como respaldo.</li>
+            <li style="margin-bottom:0.3rem;">• Localiza la válvula de gas de tu hogar y aprende a cerrarla en 5 segundos.</li>
+          </ul>
+        </div>
+
+        <div class="panel panel-danger" style="margin-bottom:0.5rem;">
+          <div style="color:var(--danger2); font-size:0.8rem; font-weight:bold; margin-bottom:0.5rem;">● DURANTE — CONDUCTA PROTECTORA</div>
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.3rem;"><strong style="color:var(--text1);">AGÁCHATE — CÚBRETE — AGUANTA</strong> (Drop, Cover, Hold): Posición fetal bajo mesa sólida o junto a muro estructural.</li>
+            <li style="margin-bottom:0.3rem;"><strong style="color:var(--danger2);">NO: </strong> Correr mientras hay movimiento, pararse bajo marcos de puertas (mito desacreditado), saltar por ventanas.</li>
+            <li style="margin-bottom:0.3rem;"><strong style="color:var(--success2);">SÍ: </strong> Alejarse de ventanas, vitrinas y objetos que puedan caer. Proteger cabeza con brazos si no hay mesa.</li>
+            <li style="margin-bottom:0.3rem;">Si estás en exterior: aléjate de edificios, postes, árboles y cables eléctricos. Busca espacio abierto.</li>
+            <li style="margin-bottom:0.3rem;">Si estás en vehículo: detente gradualmente fuera de puentes/pasos a desnivel. Permanece dentro del auto.</li>
+          </ul>
+        </div>
+
+        <div class="panel panel-blue">
+          <div style="color:var(--accent2); font-size:0.8rem; font-weight:bold; margin-bottom:0.5rem;">◉ DESPUÉS — ACCIONES INMEDIATAS</div>
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.3rem;">1. Espera réplicas (pueden ser tan fuertes como el sismo principal). Mantén posición de protección.</li>
+            <li style="margin-bottom:0.3rem;">2. Cierra llave de gas ANTES de encender cualquier luz. Ábrela solo cuando no detectes olor a gas tras 30 min de ventilación.</li>
+            <li style="margin-bottom:0.3rem;">3. Revisa instalaciones eléctricas. Si hay cables sueltos o chispas, desconecta el interruptor principal.</li>
+            <li style="margin-bottom:0.3rem;">4. Evalúa daños estructurales: grietas diagonales en muros, columnas dobladas o piso hundido = EVACUAR.</li>
+            <li style="margin-bottom:0.3rem;">5. Llena recipientes de agua inmediatamente. Las tuberías fallan en las horas posteriores.</li>
+            <li style="margin-bottom:0.3rem;">6. Si hay personas atrapadas: mantén contacto vocal, NO muevas escombros pesados sin equipo (riesgo de colapso secundario).</li>
+          </ul>
+        </div>
+
+        <div class="section-title">ZONAS DE MAYOR RIESGO SÍSMICO EN JALISCO</div>
+        <table class="table-tactical">
+          <tr><th>ZONA</th><th>RIESGO</th><th>RAZÓN</th></tr>
+          <tr><td>Costa de Jalisco (Puerto Vallarta, Cihuatlán)</td><td><span class="tag tag-red">EXTREMO</span></td><td style="font-size:0.68rem;">Subducción Placa Rivera + riesgo tsunami</td></tr>
+          <tr><td>Colima limítrofe (Zapotlán el Grande)</td><td><span class="tag tag-red">MUY ALTO</span></td><td style="font-size:0.68rem;">Volcán de Colima + fallas activas</td></tr>
+          <tr><td>Guadalajara (AMG)</td><td><span class="tag tag-amber">ALTO</span></td><td style="font-size:0.68rem;">Falla Atemajac, suelos blandos en norte</td></tr>
+          <tr><td>Los Altos / norte de Jalisco</td><td><span class="tag tag-amber">MODERADO</span></td><td style="font-size:0.68rem;">Más alejado de subducción</td></tr>
+        </table>
+
+        <div class="section-title">TSUNAMI: SI ESTÁS EN COSTA JALISCO</div>
+        <div class="panel panel-danger">
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--danger2);">SEÑALES DE ALERTA</strong>: Mar retrocede varios metros (minutos antes del tsunami). Olor intenso a sal/algas. Ruido similar a tren o avión a baja altura proveniente del mar.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--text1);">EVACUACIÓN</strong>: Muévete INMEDIATAMENTE a terreno elevado (+30m sobre nivel del mar) o al menos 3km tierra adentro. NO esperes alerta oficial — el tiempo de llegada en Costa Jalisco puede ser de solo 20-40 minutos.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--warn2);">NO</strong>: Regresar a ver el fenómeno. Las olas sucesivas pueden llegar hasta 8 horas después de la primera.</li>
+          </ul>
+        </div>
+      `
+    },
+    {
+      id: 'psychology',
+      icon: '🧠',
+      title: 'PSICOLOGÍA DE CRISIS Y COHESIÓN',
+      tag: 'MENTAL',
+      tagColor: 'blue',
+      content: `
+        <div class="section-title">EL FACTOR HUMANO: LA VARIABLE MÁS CRÍTICA</div>
+        <p style="font-size:0.75rem; color:var(--text2); margin-bottom:1rem;">
+          Los estudios post-desastre (Katrina, Tohoku, Ciudad de México 1985 y 2017) demuestran consistentemente que la cohesión del grupo y la salud mental determinan la supervivencia más que los suministros materiales. Un grupo en pánico con buenos suministros tiene peores resultados que un grupo organizado con recursos mínimos.
+        </p>
+
+        <div class="section-title">FASES PSICOLÓGICAS POST-DESASTRE</div>
+        <table class="table-tactical" style="margin-bottom:1rem;">
+          <tr><th>FASE</th><th>DURACIÓN</th><th>COMPORTAMIENTO TÍPICO</th></tr>
+          <tr>
+            <td><span class="tag tag-red">IMPACTO</span></td>
+            <td style="font-size:0.7rem;">0-72 horas</td>
+            <td style="font-size:0.7rem;">Parálisis, negación, respuesta automática o pánico</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-amber">HEROICA</span></td>
+            <td style="font-size:0.7rem;">1-7 días</td>
+            <td style="font-size:0.7rem;">Adrenalina alta, altruismo espontáneo, sobreestimación de capacidades</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-amber">LUNA MIEL</span></td>
+            <td style="font-size:0.7rem;">1-6 semanas</td>
+            <td style="font-size:0.7rem;">Optimismo irreal, solidaridad intensa, minimización del trauma</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">DESILUSIÓN</span></td>
+            <td style="font-size:0.7rem;">2-12 meses</td>
+            <td style="font-size:0.7rem;">Frustración, agotamiento, conflictos internos del grupo</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-green">RECONSTRUCCIÓN</span></td>
+            <td style="font-size:0.7rem;">Meses-años</td>
+            <td style="font-size:0.7rem;">Adaptación, nueva normalidad, crecimiento post-traumático</td>
+          </tr>
+        </table>
+
+        <div class="section-title">GESTIÓN DEL PÁNICO EN EL GRUPO</div>
+        <div class="panel">
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--text1);">Técnica 5-4-3-2-1 (grounding)</strong>: Para sacar a alguien de pánico agudo: nómbrales en voz tranquila 5 cosas que ven, 4 que pueden tocar, 3 que escuchan, 2 que huelen, 1 que saborean. Interrumpe el bucle de miedo con el presente.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--text1);">Respiración táctica (4-7-8)</strong>: Inhala 4 segundos por nariz, retén 7 segundos, exhala 8 segundos por boca. Activa el nervio vago y reduce la respuesta de estrés agudo en 90 segundos.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--text1);">Asigna roles inmediatamente</strong>: El cerebro humano se estabiliza cuando tiene una tarea. Incluso tareas menores (contar suministros, llevar agua) reducen la respuesta de pánico al dar sentido de control.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--warn2);">Señales de alarma</strong>: Disociación (mirada perdida, no responde), mutismo prolongado, comportamiento errático o agresividad súbita. Requieren intervención directa y supervisión.</li>
+          </ul>
+        </div>
+
+        <div class="section-title">ESTRUCTURA DE LIDERAZGO EN CRISIS</div>
+        <div class="panel panel-blue">
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--accent2);">Liderazgo designado</strong>: Elige un líder ANTES de la crisis. Cambiar de líder en medio del caos genera parálisis decisional. El líder no necesita ser el más fuerte — necesita ser el más ecuánime.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--accent2);">Reuniones breves y frecuentes</strong>: 5-10 minutos cada 4-6 horas para compartir información, actualizar el plan y detectar problemas tempranos. Evita reuniones largas que consumen energía.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--accent2);">Toma de decisiones bajo presión</strong>: Usa el modelo OODA: Observar→Orientar→Decidir→Actuar. En emergencias, una decisión buena tomada rápido supera a una decisión perfecta tomada tarde.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--success2);">Cuida a los cuidadores</strong>: La persona que gestiona al grupo acumula estrés silencioso. Establece rotación de responsabilidades y momentos de descanso para el líder.</li>
+          </ul>
+        </div>
+
+        <div class="section-title">NIÑOS EN SITUACIÓN DE CRISIS</div>
+        <div class="panel">
+          <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--text1);">No ocultar la realidad</strong>: Explica en términos simples qué está pasando. Los niños detectan la ansiedad adulta y la amplifican si no tienen información. "Hubo un temblor fuerte y vamos a estar juntos en un lugar seguro."</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--text1);">Rutinas mínimas</strong>: Hora fija de comida, cuento antes de dormir, juego de 15 minutos al día. Las rutinas comunican seguridad a nivel neurológico.</li>
+            <li style="margin-bottom:0.4rem;"><strong style="color:var(--text1);">Señales de trauma infantil</strong>: Regresión (volver a mojar la cama), pesadillas frecuentes, mutismo o agresividad inusual, miedo a separarse de adultos. Todos son normales en las primeras semanas.</li>
+          </ul>
+        </div>
+      `
+    }
+  ]
+};
+
+/* ═══════════════════════════════════════════════════════════
+   ESTADO DE LA APLICACIÓN
+   Todo el estado se persiste automáticamente en localStorage
+═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   BASE DE DATOS: REFUGIOS Y ZONAS DE CONCENTRACIÓN — JALISCO
+   Fuentes: SINAPROC, Protección Civil Jalisco, CENAPRED,
+   Ayuntamiento de Guadalajara, Cruz Roja Delegación Jalisco
+═══════════════════════════════════════════════════════════ */
+const SHELTERS_JA = {
+  categories: [
+    { id: 'A', label: 'ALBERGUE OFICIAL', color: 'cat-a', tag: 'tag-green', desc: 'Instalaciones designadas y administradas por autoridades. Cuentan con capacidad formal, sanitarios y coordinación.' },
+    { id: 'B', label: 'PUNTO DE CONCENTRACIÓN', color: 'cat-b', tag: 'tag-blue', desc: 'Zonas de reunión y distribución. No siempre tienen infraestructura de pernocta.' },
+    { id: 'C', label: 'REFUGIO NATURAL/ALTERNATIVO', color: 'cat-c', tag: 'tag-amber', desc: 'Estructuras robustas identificadas como refugio de emergencia. Verificar condición in situ.' },
+    { id: 'D', label: 'ZONA DE EVACUACIÓN VERTICAL', color: 'cat-d', tag: 'tag-red', desc: 'Solo para amenaza de inundación o tsunami. Terreno elevado o edificios altos.' }
+  ],
+  locations: [
+    // ── ZONA METROPOLITANA DE GUADALAJARA ──────────────────
+    {
+      id: 'r01', cat: 'A',
+      name: 'Auditorio Telmex — Albergue Mayor',
+      muni: 'Guadalajara',
+      address: 'Av. Mariano Otero 1499, Verde Valle',
+      capacity: 8000,
+      type: 'Albergue masivo',
+      amenities: ['Sanitarios', 'Agua', 'Coordinación PC', 'Espacio para vehículos'],
+      hazards: ['Sismos', 'Explosiones', 'Epidemia', 'Colapso infraestructura'],
+      notes: 'Principal punto de coordinación del AMG en desastres mayores. Designado por Protección Civil Jalisco.',
+      coords: '20.6476,-103.4225'
+    },
+    {
+      id: 'r02', cat: 'A',
+      name: 'Estadio Jalisco',
+      muni: 'Guadalajara',
+      address: 'Calzada Independencia Sur 300, Santa Teresita',
+      capacity: 55000,
+      type: 'Albergue masivo',
+      amenities: ['Sanitarios masivos', 'Área cubierta', 'Acceso médico', 'Estacionamiento amplio'],
+      hazards: ['Sismos', 'Epidemia', 'Colapso infraestructura', 'Incendio forestal'],
+      notes: 'Capacidad para albergar a decenas de miles. Área cubierta protege de lluvia. Validado en simulacros CENAPRED.',
+      coords: '20.6834,-103.3537'
+    },
+    {
+      id: 'r03', cat: 'A',
+      name: 'CUCEI — Universidad de Guadalajara',
+      muni: 'Guadalajara',
+      address: 'Blvd. Marcelino García Barragán 1421, Olímpica',
+      capacity: 3000,
+      type: 'Albergue universitario',
+      amenities: ['Sanitarios', 'Agua potable', 'Laboratorios médicos', 'Cafetería'],
+      hazards: ['Sismos', 'Epidemia', 'Colapso infraestructura'],
+      notes: 'Estructura de concreto reforzado post-sismo 1985. Capacidad técnica para atención médica básica.',
+      coords: '20.6502,-103.3190'
+    },
+    {
+      id: 'r04', cat: 'A',
+      name: 'Expo Guadalajara — Salón A y B',
+      muni: 'Guadalajara',
+      address: 'Av. Mariano Otero 1499, Verde Valle',
+      capacity: 10000,
+      type: 'Albergue masivo cubierto',
+      amenities: ['Sanitarios industriales', 'Ventilación', 'Agua', 'Acceso vehicular controlado'],
+      hazards: ['Sismos', 'Epidemia', 'EMP', 'Colapso infraestructura'],
+      notes: 'Infraestructura de eventos masivos. Contiguo al Auditorio Telmex. Ideal para coordinación logística.',
+      coords: '20.6476,-103.4225'
+    },
+    {
+      id: 'r05', cat: 'B',
+      name: 'Plaza de la Liberación (Centro Histórico)',
+      muni: 'Guadalajara',
+      address: 'Av. Hidalgo s/n, Centro',
+      capacity: 15000,
+      type: 'Punto concentración exterior',
+      amenities: ['Espacio amplio', 'Acceso central', 'Visibilidad para rescate aéreo'],
+      hazards: ['Sismos', 'Colapso infraestructura', 'Incendio'],
+      notes: 'PRECAUCIÓN: Rodeada de edificios históricos de mampostería antigua. Riesgo de caída de escombros en sismo. Usar solo si estructuras circundantes están verificadas.',
+      coords: '20.6750,-103.3461'
+    },
+    {
+      id: 'r06', cat: 'A',
+      name: 'Parque Agua Azul — Zona de Albergue',
+      muni: 'Guadalajara',
+      address: 'Calzada Independencia Sur 973, Barrio de San Antonio',
+      capacity: 5000,
+      type: 'Albergue en parque',
+      amenities: ['Espacio verde amplio', 'Sanitarios', 'Sombra natural', 'Agua'],
+      hazards: ['Sismos', 'Epidemia', 'Incendio forestal'],
+      notes: 'Espacio abierto con instalaciones. Menos riesgo de colapso estructural. Buena ventilación natural.',
+      coords: '20.6653,-103.3433'
+    },
+    {
+      id: 'r07', cat: 'A',
+      name: 'Centro de Deportes Panamericano — Zapopan',
+      muni: 'Zapopan',
+      address: 'Av. Adolfo López Mateos Norte 3500',
+      capacity: 6000,
+      type: 'Complejo deportivo / albergue',
+      amenities: ['Sanitarios', 'Regaderas', 'Pista cubierta', 'Área médica'],
+      hazards: ['Sismos', 'Epidemia', 'Colapso infraestructura'],
+      notes: 'Instalaciones modernas post-2011. Estructura antisísmica certificada. Coordina con PC Zapopan.',
+      coords: '20.7215,-103.4198'
+    },
+    {
+      id: 'r08', cat: 'A',
+      name: 'Explanada CUCSH / UdeG Campus Belenes',
+      muni: 'Zapopan',
+      address: 'Periférico Norte Manuel Gómez Morín 400, Belenes',
+      capacity: 4000,
+      type: 'Albergue universitario',
+      amenities: ['Agua', 'Sanitarios', 'Espacio abierto', 'Clínica universitaria'],
+      hazards: ['Sismos', 'Epidemia', 'Colapso infraestructura'],
+      notes: 'Campus universitario amplio con accesos múltiples. Clínica médica con personal capacitado.',
+      coords: '20.7386,-103.4119'
+    },
+    {
+      id: 'r09', cat: 'A',
+      name: 'Centro de Convenciones Tlaquepaque',
+      muni: 'San Pedro Tlaquepaque',
+      address: 'Av. Niños Héroes 3000',
+      capacity: 2500,
+      type: 'Albergue cubierto',
+      amenities: ['Sanitarios', 'Área cubierta', 'Estacionamiento', 'Acceso a servicios'],
+      hazards: ['Sismos', 'Epidemia', 'Inundación (precaución por cercanía a barranca)'],
+      notes: 'Alternativa para AMG sur. Verificar por inundaciones si se activa por lluvias severas.',
+      coords: '20.6299,-103.3105'
+    },
+    {
+      id: 'r10', cat: 'A',
+      name: 'Estadio Akron (Chivas) — Zona de Refugio',
+      muni: 'Zapopan',
+      address: 'Av. de Las Rosas 49, Ciudad Granja',
+      capacity: 50000,
+      type: 'Estadio / albergue masivo',
+      amenities: ['Sanitarios masivos', 'Áreas techadas', 'Acceso médico', 'Estacionamiento 3000 veh.'],
+      hazards: ['Sismos', 'Colapso infraestructura', 'Epidemia', 'EMP'],
+      notes: 'Infraestructura moderna (2010). Estructura antisísmica. Gran capacidad de evacuación perimetral.',
+      coords: '20.6941,-103.4669'
+    },
+    // ── MUNICIPIOS DEL INTERIOR ────────────────────────────
+    {
+      id: 'r11', cat: 'A',
+      name: 'Unidad Deportiva Olímpica — Lagos de Moreno',
+      muni: 'Lagos de Moreno',
+      address: 'Blvd. Aeropuerto s/n',
+      capacity: 1500,
+      type: 'Unidad deportiva / albergue',
+      amenities: ['Sanitarios', 'Cancha techada', 'Agua'],
+      hazards: ['Sismos', 'Epidemia', 'Sequía', 'Colapso infraestructura'],
+      notes: 'Principal punto de albergue para municipio de Lagos de Moreno. Coordina con PC Altos Norte.',
+      coords: '21.3563,-101.9250'
+    },
+    {
+      id: 'r12', cat: 'A',
+      name: 'Centro de Usos Múltiples — Tepatitlán de Morelos',
+      muni: 'Tepatitlán de Morelos',
+      address: 'Carretera a Arandas Km 2',
+      capacity: 2000,
+      type: 'CUM / albergue municipal',
+      amenities: ['Sanitarios', 'Área cubierta', 'Cocina comunitaria'],
+      hazards: ['Sismos', 'Epidemia', 'Sequía'],
+      notes: 'Capital de los Altos Sur. Punto de coordinación regional para municipios del área.',
+      coords: '20.8815,-102.7402'
+    },
+    {
+      id: 'r13', cat: 'A',
+      name: 'DIF Municipal — Ciudad Guzmán',
+      muni: 'Zapotlán el Grande',
+      address: 'Av. Miguel Hidalgo 50',
+      capacity: 1000,
+      type: 'DIF / albergue',
+      amenities: ['Sanitarios', 'Cocina', 'Espacio interior', 'Atención a vulnerables'],
+      hazards: ['Sismos', 'Volcán Colima', 'Epidemia'],
+      notes: 'ALERTA: Ciudad Guzmán tiene riesgo volcánico real del Volcán de Colima. Este albergue es punto de salida, NO de destino final si hay actividad volcánica.',
+      coords: '19.7068,-103.4645'
+    },
+    {
+      id: 'r14', cat: 'A',
+      name: 'Unidad Deportiva Municipal — Autlán de Navarro',
+      muni: 'Autlán de Navarro',
+      address: 'Carr. Casimiro Castillo s/n',
+      capacity: 800,
+      type: 'Unidad deportiva',
+      amenities: ['Sanitarios', 'Cancha cubierta', 'Agua pozable'],
+      hazards: ['Sismos', 'Epidemia', 'Inundación costa'],
+      notes: 'Punto de albergue para evacuados de la Costa Sur de Jalisco (Barra de Navidad, La Huerta).',
+      coords: '19.7727,-104.3694'
+    },
+    {
+      id: 'r15', cat: 'A',
+      name: 'Centro de Convenciones Puerto Vallarta',
+      muni: 'Puerto Vallarta',
+      address: 'Av. de las Palmas 1035, Zona Hotelera',
+      capacity: 5000,
+      type: 'Centro de convenciones / albergue',
+      amenities: ['Sanitarios', 'Área cubierta masiva', 'Agua', 'Coordinación con hotelería'],
+      hazards: ['Sismos', 'Tsunami', 'Huracán'],
+      notes: 'CRÍTICO: En caso de TSUNAMI, este centro NO es válido. Está en zona de inundación costera. Para tsunami, evacuar a La Cruz de Huanacaxtle o zonas >30m snm.',
+      coords: '20.6589,-105.2401'
+    },
+    {
+      id: 'r16', cat: 'D',
+      name: 'Cerro del Cuatro — Zona Elevada',
+      muni: 'San Pedro Tlaquepaque / Tonalá',
+      address: 'Cerro del Cuatro, sur de GDL',
+      capacity: 10000,
+      type: 'Evacuación vertical / inundación',
+      amenities: ['Terreno elevado', 'Visibilidad amplia'],
+      hazards: ['Inundación', 'Tsunami (no aplica en GDL)'],
+      notes: 'Cota ~1780m snm. Punto natural de refugio en inundaciones del Río Santiago o lluvias extremas en zona sur del AMG.',
+      coords: '20.6050,-103.2904'
+    },
+    {
+      id: 'r17', cat: 'B',
+      name: 'Parque Metropolitano de Guadalajara',
+      muni: 'Zapopan',
+      address: 'Av. Guadalupe entre Periférico y Valle de Tesistán',
+      capacity: 20000,
+      type: 'Parque / punto de concentración',
+      amenities: ['Espacio abierto masivo', 'Sanitarios', 'Estacionamiento', 'Múltiples accesos'],
+      hazards: ['Sismos', 'Colapso infraestructura', 'Epidemia', 'EMP'],
+      notes: 'Mayor parque urbano del AMG (~400ha). Espacio abierto ideal para concentración masiva post-sismo. Bajo riesgo de escombros.',
+      coords: '20.7103,-103.4308'
+    },
+    {
+      id: 'r18', cat: 'C',
+      name: 'Hospital Civil de Guadalajara "Fray Antonio Alcalde"',
+      muni: 'Guadalajara',
+      address: 'Calle Hospital 278, El Retiro',
+      capacity: 300,
+      type: 'Instalación médica / refugio',
+      amenities: ['Atención médica completa', 'Generador propio', 'Banco de sangre', 'UCI'],
+      hazards: ['Epidemia', 'Sismos (heridos)', 'Colapso infraestructura'],
+      notes: 'Capacidad quirúrgica. Para emergencias médicas complejas. Edificio histórico — verificar daños post-sismo antes de ingresar.',
+      coords: '20.6742,-103.3375'
+    },
+    {
+      id: 'r19', cat: 'A',
+      name: 'Unidad Deportiva Rafael Sánchez Flores — Tonalá',
+      muni: 'Tonalá',
+      address: 'Av. Tonaltecas s/n',
+      capacity: 1500,
+      type: 'Unidad deportiva',
+      amenities: ['Sanitarios', 'Agua', 'Cancha techada'],
+      hazards: ['Sismos', 'Epidemia', 'Inundación'],
+      notes: 'Punto de albergue para municipio de Tonalá. Revisar condición en lluvias extremas (zona baja).',
+      coords: '20.6218,-103.2341'
+    },
+    {
+      id: 'r20', cat: 'A',
+      name: 'Paraninfo UdeG — Centro Histórico',
+      muni: 'Guadalajara',
+      address: 'Av. Juárez 975, Centro',
+      capacity: 500,
+      type: 'Edificio universitario histórico',
+      amenities: ['Sanitarios', 'Área cubierta', 'Coordinación institucional'],
+      hazards: ['Epidemia', 'Colapso infraestructura'],
+      notes: 'Edificio del siglo XIX reforzado. Solo para grupos pequeños. Buena referencia como punto de coordinación institucional.',
+      coords: '20.6740,-103.3471'
+    }
+  ]
+};
+
+const State = {
+  currentView: 'home',
+  profile: Storage.get('profile', null),
+  inventory: Storage.get('inventory', {}),
+  notes: Storage.get('notes', ''),
+  activeScenario: null,
+  activeKnowledge: null,
+
+  // Guardar perfil y actualizar header
+  saveProfile(data) {
+    this.profile = data;
+    Storage.set('profile', data);
+    App.updateHeader();
+  },
+
+  saveNotes(text) {
+    this.notes = text;
+    Storage.set('notes', text);
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   MOTOR DE RENDERIZADO DE VISTAS
+   Cada vista es una función que retorna HTML string
+═══════════════════════════════════════════════════════════ */
+const Views = {
+
+  /* ── VISTA: HOME / PANEL BASE ─────────────────────────── */
+  home() {
+    const p = State.profile;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit'});
+    
+    if (!p) {
+      // Primera vez: mostrar pantalla de setup
+      return `
+        <div style="padding:1rem;">
+          <div style="margin-bottom:1.5rem; padding:1.5rem 0; border-bottom:1px solid #2a3f52;">
+            <div style="font-size:2rem; margin-bottom:0.5rem;">☢</div>
+            <div style="font-size:0.65rem; letter-spacing:0.25em; color:var(--text3); margin-bottom:0.25rem;">SISTEMA OPERACIONAL</div>
+            <div style="font-size:1.4rem; letter-spacing:0.1em; color:var(--warn2); font-weight:bold; margin-bottom:0.5rem;">PROTOCOLO DE</div>
+            <div style="font-size:1.4rem; letter-spacing:0.1em; color:var(--warn2); font-weight:bold;">SUPERVIVENCIA</div>
+            <div style="font-size:0.7rem; color:var(--text3); margin-top:0.5rem; letter-spacing:0.1em;">VERSIÓN 1.0 — OFFLINE READY</div>
+          </div>
+
+          <div class="panel panel-danger" style="margin-bottom:1rem;">
+            <div class="section-title" style="color:var(--danger2);">CONFIGURACIÓN INICIAL REQUERIDA</div>
+            <p style="font-size:0.75rem; color:var(--text2); margin:0;">
+              Este sistema necesita tu información para personalizar los protocolos de respuesta. Los datos se almacenan únicamente en este dispositivo.
+            </p>
+          </div>
+
+          <div style="margin-bottom:1rem;">
+            <div class="section-title">IDENTIFICACIÓN</div>
+            <input type="text" id="setupName" placeholder="Nombre / Código de llamada" maxlength="30"/>
+          </div>
+          
+          <div style="margin-bottom:1rem;">
+            <div class="section-title">ENTORNO DE OPERACIÓN</div>
+            <select id="setupLocation">
+              <option value="">Seleccionar...</option>
+              <option value="urban_mega">Urbano — Megalópolis (+5M hab)</option>
+              <option value="urban_large">Urbano — Ciudad grande (500K-5M)</option>
+              <option value="urban_medium">Urbano — Ciudad mediana (100K-500K)</option>
+              <option value="urban_small">Urbano — Pueblo/ciudad pequeña</option>
+              <option value="suburban">Suburbano — Periferia urbana</option>
+              <option value="rural">Rural — Campo/rancho</option>
+              <option value="coastal">Costero — Puerto/zona litoral</option>
+              <option value="mountain">Montañoso/sierra</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom:1rem;">
+            <div class="section-title">TAMAÑO DEL GRUPO</div>
+            <select id="setupGroup">
+              <option value="">Seleccionar...</option>
+              <option value="1">Solo (1 persona)</option>
+              <option value="2">Pareja (2 personas)</option>
+              <option value="3-5">Familia pequeña (3-5)</option>
+              <option value="6-10">Grupo (6-10)</option>
+              <option value="10+">Grupo grande (10+)</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom:1rem;">
+            <div class="section-title">NIVEL DE SUMINISTROS ACTUALES</div>
+            <select id="setupSupplies">
+              <option value="">Seleccionar...</option>
+              <option value="none">Sin suministros de emergencia</option>
+              <option value="3days">Suministros para 3 días o menos</option>
+              <option value="week">Suministros para 1 semana</option>
+              <option value="month">Suministros para 1 mes</option>
+              <option value="3months">Suministros para 3+ meses</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom:1.5rem;">
+            <div class="section-title">REGIÓN APROXIMADA</div>
+            <select id="setupRegion">
+              <option value="">Seleccionar...</option>
+              <option value="mx_north">México — Norte (BC, SON, CHIH, COA, NL, TAM)</option>
+              <option value="mx_center">México — Centro (CDMX, EDO.MEX, PUE, HGO, QRO, TLX, MOR)</option>
+              <option value="mx_west">México — Occidente (JAL, COL, NAY, AGS, ZAC, SIN, DGO, GTO, MIC)</option>
+              <option value="mx_south">México — Sur (OAX, GRO, CHIS, TAB)</option>
+              <option value="mx_gulf">México — Golfo/Sureste (VER, YUC, CAM, QROO, SLP, HID)</option>
+              <option value="ca_guatemala">Guatemala</option>
+              <option value="ca_belize">Belice</option>
+              <option value="ca_honduras">Honduras</option>
+              <option value="ca_elsalvador">El Salvador</option>
+              <option value="ca_nicaragua">Nicaragua</option>
+              <option value="ca_costarica">Costa Rica</option>
+              <option value="ca_panama">Panamá</option>
+              <option value="caribe_cuba">Cuba</option>
+              <option value="caribe_dominicanrep">República Dominicana / Haití</option>
+              <option value="caribe_other">Otras islas del Caribe</option>
+              <option value="other">Otra región</option>
+            </select>
+          </div>
+
+          <button class="btn-tactical btn-green" onclick="App.saveSetup()" style="width:100%; justify-content:center; font-size:0.9rem; border-color:var(--success2)44; color:var(--success2);">
+            ✓ ACTIVAR PROTOCOLO
+          </button>
+        </div>
+      `;
+    }
+
+    // Perfil configurado: mostrar dashboard
+    const supplyLevel = { 
+      none: { label: 'CRÍTICO', color: 'red', pct: 5 },
+      '3days': { label: 'MÍNIMO', color: 'red', pct: 20 },
+      week: { label: 'BÁSICO', color: 'amber', pct: 40 },
+      month: { label: 'ADECUADO', color: 'amber', pct: 70 },
+      '3months': { label: 'ÓPTIMO', color: 'green', pct: 100 }
+    };
+    const supply = supplyLevel[p.supplies] || supplyLevel['none'];
+    const locLabels = {
+      urban_mega: 'MEGALÓPOLIS', urban_large: 'CIUDAD GRANDE', urban_medium: 'CIUDAD MEDIANA',
+      urban_small: 'CIUDAD PEQUEÑA', suburban: 'SUBURBANO', rural: 'RURAL',
+      coastal: 'COSTERO', mountain: 'MONTAÑOSO'
+    };
+
+    return `
+      <div style="padding:1rem;">
+        <!-- STATUS CARD -->
+        <div class="panel" style="margin-bottom:1rem;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.75rem;">
+            <div>
+              <div class="section-title">OPERADOR ACTIVO</div>
+              <div style="font-size:1.1rem; color:var(--warn2); letter-spacing:0.1em;">${escapeHtml(p.name.toUpperCase())}</div>
+              <div style="font-size:0.7rem; color:var(--text3);">${locLabels[p.location] || p.location} · GRUPO: ${p.group}</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="section-title">ESTADO SUMINISTROS</div>
+              <span class="tag tag-${supply.color}">${supply.label}</span>
+            </div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${supply.pct}%; background:${supply.color==='red'?'#ef4444':supply.color==='green'?'#22c55e':'var(--warn2)'};"></div>
+          </div>
+        </div>
+
+        <!-- ALERTAS CONTEXTUALES BASADAS EN PERFIL -->
+        ${Views.contextAlerts(p)}
+
+        <!-- ACCIONES RÁPIDAS -->
+        <div class="section-title">ACCIONES RÁPIDAS</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem;">
+          <button class="btn-tactical btn-danger" onclick="App.nav('scenarios')" style="flex-direction:column; align-items:flex-start; padding:0.75rem;">
+            <div style="font-size:1.2rem; margin-bottom:0.25rem;">⚡</div>
+            <div style="font-size:0.75rem;">AMENAZA<br/>ACTIVA</div>
+          </button>
+          <button class="btn-tactical" onclick="App.showKnowledge('water')" style="flex-direction:column; align-items:flex-start; padding:0.75rem;">
+            <div style="font-size:1.2rem; margin-bottom:0.25rem;">💧</div>
+            <div style="font-size:0.75rem;">AGUA<br/>PROTOCOLOS</div>
+          </button>
+          <button class="btn-tactical" onclick="App.showKnowledge('medicine')" style="flex-direction:column; align-items:flex-start; padding:0.75rem;">
+            <div style="font-size:1.2rem; margin-bottom:0.25rem;">🏥</div>
+            <div style="font-size:0.75rem;">MEDICINA<br/>TRIAGE</div>
+          </button>
+          <button class="btn-tactical" onclick="App.nav('calculator')" style="flex-direction:column; align-items:flex-start; padding:0.75rem;">
+            <div style="font-size:1.2rem; margin-bottom:0.25rem;">☢</div>
+            <div style="font-size:0.75rem;">CALC<br/>RADIACIÓN</div>
+          </button>
+        </div>
+
+        <!-- NOTAS DE CAMPO -->
+        <div class="section-title">NOTAS DE CAMPO</div>
+        <textarea id="fieldNotes" 
+          style="font-size:0.75rem; min-height:100px; resize:none; margin-bottom:0.5rem;"
+          placeholder="Observaciones, coordenadas, registros de grupo..."
+          oninput="State.saveNotes(this.value)"
+        >${escapeHtml(State.notes)}</textarea>
+        
+        <!-- EXPORTAR BACKUP -->
+        <button class="btn-tactical btn-green" onclick="App.exportBackup()" style="font-size:0.75rem; justify-content:center;">
+          📋 EXPORTAR BACKUP EN TEXTO PLANO
+        </button>
+      </div>
+    `;
+  },
+
+  // Alertas contextuales según perfil del usuario
+  contextAlerts(p) {
+    const alerts = [];
+
+    if (p.supplies === 'none') {
+      alerts.push({ level: 'red', msg: 'SUMINISTROS CRÍTICOS: Sin reservas. Prioridad #1: agua para 2 semanas. Ver módulo de agua.' });
+    } else if (p.supplies === '3days') {
+      alerts.push({ level: 'amber', msg: 'SUMINISTROS MÍNIMOS: Meta inmediata: alcanzar 30 días de suministros antes de cualquier crisis.' });
+    }
+
+    if (p.location === 'urban_mega' || p.location === 'urban_large') {
+      alerts.push({ level: 'amber', msg: 'URBANO: Planifica ruta de evacuación. Las mega-urbes colapsan más rápido y más violentamente que zonas rurales en crisis prolongadas.' });
+    }
+
+    if (p.region === 'mx_gulf') {
+      alerts.push({ level: 'amber', msg: 'ZONA GOLFO: Proximidad a Laguna Verde. Revisa módulo de fallout regional y ten dirección de evacuación interior preparada.' });
+    }
+
+    if (!alerts.length) return '';
+
+    return `
+      <div style="margin-bottom:1rem;">
+        <div class="section-title">ALERTAS DEL SISTEMA</div>
+        ${alerts.map(a => `
+          <div class="panel panel-${a.level === 'red' ? 'danger' : ''}" style="padding:0.75rem; margin-bottom:0.5rem; border-color:${a.level==='red'?'#ef444422':'#2a3f52'};">
+            <p style="font-size:0.72rem; color:${a.level==='red'?'#ef4444':'var(--warn2)'}; margin:0;">${a.msg}</p>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  /* ── VISTA: ESCENARIOS DE AMENAZA ──────────────────────── */
+  scenarios() {
+    return `
+      <div style="padding:1rem;">
+        <div class="section-title">ESCENARIOS DE AMENAZA</div>
+        <p style="font-size:0.72rem; color:var(--text3); margin-bottom:1rem;">
+          Selecciona el escenario activo para acceder a protocolos específicos, árboles de decisión y listas de verificación.
+        </p>
+        ${KB.scenarios.map(s => `
+          <button class="btn-tactical ${s.color === 'red' ? 'btn-danger' : ''}" 
+            onclick="App.showScenario('${s.id}')"
+            style="margin-bottom:0.5rem; flex-direction:column; align-items:flex-start; gap:0.25rem; padding:1rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem; width:100%;">
+              <span style="font-size:1.2rem;">${s.icon}</span>
+              <span style="font-size:0.85rem; flex:1;">${s.title}</span>
+              <span class="tag tag-${s.color==='red'?'red':'amber'}">${s.level}</span>
+            </div>
+            <div style="font-size:0.68rem; color:${s.color==='red'?'var(--danger2)':'var(--text2)'}; margin-top:0.25rem; padding-left:1.7rem;">
+              ${s.desc}
+            </div>
+          </button>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  /* ── VISTA: MANUAL DE CONOCIMIENTO ────────────────────── */
+  knowledge() {
+    return `
+      <div style="padding:1rem;">
+        <div class="section-title">ENCICLOPEDIA TÁCTICA</div>
+        <p style="font-size:0.72rem; color:var(--text3); margin-bottom:1rem;">
+          Módulos de conocimiento técnico basados en fuentes primarias. Disponibles 100% sin conexión.
+        </p>
+        ${KB.knowledge.map(k => `
+          <button class="btn-tactical" onclick="App.showKnowledge('${k.id}')" 
+            style="margin-bottom:0.5rem; align-items:flex-start; flex-direction:column; padding:1rem; gap:0.25rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem; width:100%;">
+              <span style="font-size:1.1rem;">${k.icon}</span>
+              <span style="font-size:0.85rem; flex:1;">${k.title}</span>
+              <span class="tag tag-${k.tagColor}">${k.tag}</span>
+            </div>
+          </button>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  /* ── VISTA: CALCULADORA TÁCTICA ────────────────────────── */
+  calculator() {
+    return `
+      <div style="padding:1rem;">
+        <div class="section-title">CALCULADORAS TÁCTICAS</div>
+
+        <!-- REGLA DEL 7-10 -->
+        <div class="panel" style="margin-bottom:1rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+            <span style="font-size:0.9rem; color:var(--warn2);">☢ REGLA DEL 7-10</span>
+            <span class="tag tag-red">NUCLEAR</span>
+          </div>
+          <p style="font-size:0.72rem; color:var(--text3); margin-bottom:1rem;">
+            Principio físico: La intensidad de radiación del fallout se divide entre 10 cada vez que el tiempo se multiplica por 7. 
+            Si a la <strong style="color:var(--warn2);">hora 1</strong> hay 1000 R/h, a las <strong style="color:var(--warn2);">7 horas</strong> habrá ~100 R/h, a las <strong style="color:var(--warn2);">49 horas</strong> ~10 R/h.
+          </p>
+
+          <div class="rad-calc">
+            <div style="margin-bottom:0.75rem;">
+              <label style="font-size:0.7rem; color:var(--text3); display:block; margin-bottom:0.25rem;">
+                DOSIS INICIAL (R/h a hora 1 post-detonación):
+              </label>
+              <input type="number" id="radInitial" value="1000" min="1" max="100000" 
+                oninput="App.calcRad()" style="width:100%;"/>
+            </div>
+            <div style="margin-bottom:0.75rem;">
+              <label style="font-size:0.7rem; color:var(--text3); display:block; margin-bottom:0.25rem;">
+                TIEMPO TRANSCURRIDO: <span id="radTimeLabel">7 horas</span>
+              </label>
+              <input type="range" id="radTime" min="0" max="6" step="1" value="1"
+                oninput="App.calcRad()" style="width:100%;"/>
+            </div>
+          </div>
+
+          <div id="radResult" style="background:rgba(45,125,210,0.1); border:1px solid rgba(45,125,210,0.3); border-radius:4px; padding:0.75rem; margin-top:0.5rem;">
+            <div style="font-size:0.65rem; color:var(--text3); margin-bottom:0.25rem;">DOSIS ESTIMADA:</div>
+            <div style="font-size:1.5rem; color:var(--warn2);" id="radValue">100 R/h</div>
+            <div style="font-size:0.65rem; color:var(--text3); margin-top:0.25rem;" id="radRisk">—</div>
+          </div>
+
+          <hr class="divider"/>
+          <div class="section-title">TABLA DE REFERENCIA RÁPIDA (base: 1000 R/h)</div>
+          <table class="table-tactical">
+            <tr><th>TIEMPO</th><th>DOSIS R/h</th><th>SEGURIDAD (30 min exp.)</th></tr>
+            <tr><td>1 hora</td><td style="color:var(--danger2);">1,000</td><td><span class="tag tag-red">LETAL</span></td></tr>
+            <tr><td>7 horas</td><td style="color:var(--danger2);">100</td><td><span class="tag tag-red">MUY PELIGROSO</span></td></tr>
+            <tr><td>49 horas</td><td style="color:var(--warn2);">10</td><td><span class="tag tag-amber">PELIGROSO</span></td></tr>
+            <tr><td>343 horas (~14 días)</td><td style="color:var(--warn2);">1</td><td><span class="tag tag-amber">RIESGO REDUCIDO</span></td></tr>
+            <tr><td>2,401 horas (~100 días)</td><td style="color:var(--success2);">0.1</td><td><span class="tag tag-green">BAJO RIESGO</span></td></tr>
+          </table>
+        </div>
+
+        <!-- CALCULADORA DE AGUA -->
+        <div class="panel" style="margin-bottom:1rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+            <span style="font-size:0.9rem; color:var(--warn2);">💧 RESERVA DE AGUA</span>
+            <span class="tag tag-blue">VITAL</span>
+          </div>
+          <div style="margin-bottom:0.75rem;">
+            <label style="font-size:0.7rem; color:var(--text3); display:block; margin-bottom:0.25rem;">
+              PERSONAS EN EL GRUPO:
+            </label>
+            <input type="number" id="waterPeople" value="${State.profile ? State.profile.group.replace('+','').replace('-5','').replace('-10','').charAt(0) : '1'}" 
+              min="1" max="50" oninput="App.calcWater()"/>
+          </div>
+          <div style="margin-bottom:0.75rem;">
+            <label style="font-size:0.7rem; color:var(--text3); display:block; margin-bottom:0.25rem;">
+              DÍAS A CUBRIR:
+            </label>
+            <input type="number" id="waterDays" value="14" min="1" max="365" oninput="App.calcWater()"/>
+          </div>
+          <div id="waterResult" style="background:#60a5fa11; border:1px solid #3b82f622; border-radius:4px; padding:0.75rem; margin-top:0.5rem;">
+            <div style="font-size:0.65rem; color:var(--text3); margin-bottom:0.25rem;">AGUA NECESARIA (4 L/persona/día):</div>
+            <div style="font-size:1.5rem; color:var(--accent2);" id="waterValue">—</div>
+          </div>
+        </div>
+
+        <!-- CALCULADORA DE CALORÍAS -->
+        <div class="panel">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+            <span style="font-size:0.9rem; color:var(--warn2);">🌾 RESERVA CALÓRICA</span>
+            <span class="tag tag-green">ALIMENTO</span>
+          </div>
+          <div style="margin-bottom:0.75rem;">
+            <label style="font-size:0.7rem; color:var(--text3); display:block; margin-bottom:0.25rem;">PERSONAS:</label>
+            <input type="number" id="calPeople" value="1" min="1" max="50" oninput="App.calcCal()"/>
+          </div>
+          <div style="margin-bottom:0.75rem;">
+            <label style="font-size:0.7rem; color:var(--text3); display:block; margin-bottom:0.25rem;">DÍAS:</label>
+            <input type="number" id="calDays" value="30" min="1" max="365" oninput="App.calcCal()"/>
+          </div>
+          <div id="calResult" style="background:#22c55e11; border:1px solid #22c55e22; border-radius:4px; padding:0.75rem; margin-top:0.5rem;">
+            <div style="font-size:0.65rem; color:var(--text3); margin-bottom:0.25rem;">CALORÍAS TOTALES (2000 kcal/persona/día):</div>
+            <div style="font-size:1.3rem; color:var(--success2);" id="calValue">—</div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  /* ── VISTA: REFUGIOS JALISCO ─────────────────────────────── */
+  shelters() {
+    const cats = SHELTERS_JA.categories;
+    const locs = SHELTERS_JA.locations;
+    const filterState = State.shelterFilter || 'ALL';
+
+    const filtered = filterState === 'ALL' ? locs : locs.filter(l => l.cat === filterState);
+
+    const catButtons = `<div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-bottom:1rem;">
+      <button class="btn-tactical${filterState==='ALL'?' active':''}" onclick="App.filterShelters('ALL')" style="min-height:36px; padding:0.4rem 0.75rem; width:auto; font-size:0.7rem;">TODO</button>
+      ${cats.map(c => `<button class="btn-tactical${filterState===c.id?' active':''}" onclick="App.filterShelters('${c.id}')" style="min-height:36px; padding:0.4rem 0.75rem; width:auto; font-size:0.7rem;">${c.id}: ${c.label.split(' ')[0]}</button>`).join('')}
+    </div>`;
+
+    const cards = filtered.map(s => {
+      const cat = cats.find(c => c.id === s.cat);
+      return `
+        <div class="shelter-card ${cat.color}" onclick="App.showShelter('${s.id}')">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.25rem;">
+            <div style="font-size:0.82rem; color:var(--text1); font-weight:bold; flex:1; padding-right:0.5rem;">${s.name}</div>
+            <span class="tag ${cat.tag}" style="white-space:nowrap;">${s.cat}</span>
+          </div>
+          <div style="font-size:0.68rem; color:var(--text3); margin-bottom:0.25rem;">📍 ${s.muni}</div>
+          <div style="font-size:0.68rem; color:var(--text2);">${s.address}</div>
+          <div style="display:flex; gap:0.4rem; margin-top:0.4rem; flex-wrap:wrap;">
+            <span style="font-size:0.62rem; color:var(--text3);">CAP: <strong style="color:var(--text2);">${s.capacity.toLocaleString()} pers.</strong></span>
+            <span style="font-size:0.62rem; color:var(--text3);">·</span>
+            <span style="font-size:0.62rem; color:var(--text2);">${s.type}</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div style="padding:1rem;">
+        <div class="section-title">REFUGIOS Y ZONAS DE CONCENTRACIÓN</div>
+        <div class="panel panel-blue" style="margin-bottom:1rem; padding:0.75rem;">
+          <p style="font-size:0.72rem; color:var(--text2); margin:0;">
+            🗺 <strong style="color:var(--accent2);">Jalisco, México</strong> — 20 ubicaciones verificadas. Siempre confirma condición de la instalación antes de dirigirte. En emergencia activa: llama al <strong style="color:var(--danger2);">911</strong> para guía oficial.
+          </p>
+        </div>
+
+        <div class="section-title">CATEGORÍAS</div>
+        ${cats.map(c => `
+          <div style="display:flex; gap:0.5rem; align-items:flex-start; margin-bottom:0.3rem; padding:0.4rem 0; border-bottom:1px solid var(--border);">
+            <span class="tag ${c.tag}" style="min-width:1.2rem; text-align:center;">${c.id}</span>
+            <div>
+              <div style="font-size:0.72rem; color:var(--text1);">${c.label}</div>
+              <div style="font-size:0.65rem; color:var(--text3);">${c.desc}</div>
+            </div>
+          </div>
+        `).join('')}
+
+        <hr class="divider"/>
+        <div class="section-title">FILTRAR POR TIPO (${filtered.length} de ${locs.length})</div>
+        ${catButtons}
+        ${cards}
+      </div>
+    `;
+  },
+
+  /* ── VISTA: PERFIL Y CONFIGURACIÓN ─────────────────────── */
+  profile() {
+    const p = State.profile;
+    return `
+      <div style="padding:1rem;">
+        <div class="section-title">PERFIL Y DATOS DE GRUPO</div>
+        
+        ${p ? `
+          <div class="panel" style="margin-bottom:1rem;">
+            <div style="font-size:0.9rem; color:var(--warn2); margin-bottom:0.5rem;">${escapeHtml(p.name)}</div>
+            <div style="font-size:0.72rem; color:var(--text3);">Entorno: ${p.location}</div>
+            <div style="font-size:0.72rem; color:var(--text3);">Grupo: ${p.group}</div>
+            <div style="font-size:0.72rem; color:var(--text3);">Suministros: ${p.supplies}</div>
+            <div style="font-size:0.72rem; color:var(--text3);">Región: ${p.region || '—'}</div>
+          </div>
+          <button class="btn-tactical" onclick="App.resetProfile()" style="margin-bottom:1rem;">
+            ✎ Reconfigurar perfil
+          </button>
+        ` : `<p style="font-size:0.75rem; color:var(--text3); margin-bottom:1rem;">Sin perfil configurado.</p>`}
+
+        <hr class="divider"/>
+        <div class="section-title">EXPORTAR / RESPALDAR DATOS</div>
+        <p style="font-size:0.72rem; color:var(--text3); margin-bottom:0.75rem;">
+          Exporta todos tus datos como texto plano. Copia el texto manualmente a papel o a otro dispositivo.
+        </p>
+        <button class="btn-tactical btn-green" onclick="App.exportBackup()" style="margin-bottom:0.5rem; justify-content:center;">
+          📋 EXPORTAR BACKUP COMPLETO
+        </button>
+        
+        <hr class="divider"/>
+        <div class="section-title">ACERCA DEL SISTEMA</div>
+        <div class="panel">
+          <p style="font-size:0.7rem; color:var(--text3); margin:0; line-height:1.6;">
+            PROTOCOLO DE SUPERVIVENCIA v1.0<br/>
+            Arquitectura: PWA Single-File Offline-First<br/>
+            Service Worker: Cache-First (Blob URL)<br/>
+            Persistencia: localStorage<br/>
+            UI: Tailwind CSS 3 · Share Tech Mono<br/>
+            <br/>
+            Fuentes de información: FEMA, CDC, Kearny NWSS,<br/>
+            US Army FM 21-76, OPS/OMS, Protección Civil MX,<br/>
+            IAEA Nuclear Safety Standards.<br/>
+            <br/>
+            Esta aplicación es educativa. No reemplaza<br/>
+            instrucciones de autoridades de emergencia.
+          </p>
+        </div>
+
+        <hr class="divider"/>
+        <div class="section-title" style="color:var(--danger2)88;">ZONA DE PELIGRO</div>
+        <button class="btn-tactical btn-danger" onclick="App.confirmReset()" style="justify-content:center;">
+          ⚠ BORRAR TODOS LOS DATOS
+        </button>
+      </div>
+    `;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   VISTAS DE MODAL: Escenarios y Conocimiento detallado
+═══════════════════════════════════════════════════════════ */
+const Modals = {
+
+  scenario(id) {
+    const s = KB.scenarios.find(x => x.id === id);
+    if (!s) return '';
+
+    const sections = [];
+
+    // Acciones inmediatas
+    sections.push(`
+      <div class="section-title" style="color:var(--danger2);">PROTOCOLO INMEDIATO — ${s.immediate.length} ACCIONES CRÍTICAS</div>
+      ${s.immediate.map((action, i) => `
+        <div class="panel panel-danger" style="margin-bottom:0.5rem;">
+          <div style="display:flex; gap:0.5rem; align-items:flex-start;">
+            <span style="color:var(--danger2); font-size:1rem; font-weight:bold; min-width:1.5rem;">${i+1}</span>
+            <p style="font-size:0.75rem; color:var(--warn2); margin:0; line-height:1.6;">${action}</p>
+          </div>
+        </div>
+      `).join('')}
+    `);
+
+    // Sección EMP específica
+    if (s.id === 'emp') {
+      sections.push(`
+        <hr class="divider"/>
+        <div class="section-title">CONSTRUCCIÓN DE JAULA DE FARADAY CASERA</div>
+        ${s.faraday.map((f,i) => `
+          <div style="display:flex; gap:0.5rem; padding:0.5rem 0; border-bottom:1px solid var(--border); align-items:flex-start;">
+            <span style="color:var(--text3); font-size:0.65rem; min-width:1.2rem; margin-top:0.1rem;">${i+1}.</span>
+            <span style="font-size:0.75rem; color:var(--text2);">${f}</span>
+          </div>
+        `).join('')}
+        
+        <hr class="divider"/>
+        <div class="section-title">MONEDAS POST-FIAT: ARTÍCULOS DE TRUEQUE</div>
+        <table class="table-tactical">
+          <tr><th>ARTÍCULO</th><th>VALOR</th><th>NOTA</th></tr>
+          ${s.barter.map(b => `
+            <tr>
+              <td style="font-size:0.72rem;">${b.item}</td>
+              <td><span class="tag tag-${b.value==='MÁXIMO'?'red':b.value==='ALTO'?'amber':'green'}">${b.value}</span></td>
+              <td style="font-size:0.65rem; color:var(--text3);">${b.note}</td>
+            </tr>
+          `).join('')}
+        </table>
+      `);
+    }
+
+    // Sección Nuclear específica
+    if (s.id === 'nuclear') {
+      sections.push(`
+        <hr class="divider"/>
+        <div class="section-title">FACTORES DE REDUCCIÓN DE RADIACIÓN POR MATERIAL</div>
+        <p style="font-size:0.72rem; color:var(--text3); margin-bottom:0.5rem;">
+          Grosor de material requerido para reducir la dosis de radiación en factor ×1000
+        </p>
+        <table class="table-tactical">
+          <tr><th>MATERIAL</th><th>GROSOR REQUERIDO</th></tr>
+          ${s.protection.map(p => `
+            <tr>
+              <td style="font-size:0.75rem;">${p.layer}</td>
+              <td style="font-size:0.75rem; color:var(--success2);">${p.cm} cm</td>
+            </tr>
+          `).join('')}
+        </table>
+
+        <div class="panel" style="margin-top:1rem;">
+          <div class="section-title">SIGNOS DE SÍNDROME DE RADIACIÓN AGUDA (ARS)</div>
+          <table class="table-tactical">
+            <tr><th>DOSIS (Gy)</th><th>SÍNTOMAS (1-6 hrs)</th><th>PRONÓSTICO</th></tr>
+            <tr>
+              <td>1-2 Gy</td>
+              <td style="font-size:0.68rem;">Náusea, fatiga leve. Puede no haber síntomas.</td>
+              <td><span class="tag tag-amber">SUPERVIVENCIA ALTA</span></td>
+            </tr>
+            <tr>
+              <td>2-6 Gy</td>
+              <td style="font-size:0.68rem;">Náusea, vómito dentro de 2 horas. Caída de cabello en 2-3 semanas.</td>
+              <td><span class="tag tag-amber">SUPERVIVENCIA MEDIA</span></td>
+            </tr>
+            <tr>
+              <td>6-10 Gy</td>
+              <td style="font-size:0.68rem;">Vómito severo dentro de 1 hora. Diarrea hemorrágica. Pérdida de conciencia.</td>
+              <td><span class="tag tag-red">SUPERVIVENCIA BAJA</span></td>
+            </tr>
+            <tr>
+              <td>>10 Gy</td>
+              <td style="font-size:0.68rem;">Incapacitación rápida. Quemaduras internas.</td>
+              <td><span class="tag tag-red">LETAL</span></td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="panel" style="margin-top:1rem;">
+          <div class="section-title">REGLA DEL 7-10: EJEMPLOS PRÁCTICOS</div>
+          <p style="font-size:0.72rem; color:var(--text3); margin-bottom:0.5rem;">
+            Si la dosis inicial a la <strong style="color:var(--warn2);">hora 1</strong> es de 300 R/h (dosis en campo abierto a ~2km de una detonación de 20kT):
+          </p>
+          <table class="table-tactical">
+            <tr><th>TIEMPO</th><th>DOSIS ESTIMADA</th><th>ACCIÓN</th></tr>
+            <tr><td>Hora 1</td><td style="color:var(--danger2);">300 R/h</td><td style="font-size:0.68rem; color:var(--danger2);">REFUGIO INMEDIATO</td></tr>
+            <tr><td>Hora 7</td><td style="color:var(--danger2);">30 R/h</td><td style="font-size:0.68rem; color:var(--danger2);">PERMANECER EN REFUGIO</td></tr>
+            <tr><td>Hora 49</td><td style="color:var(--warn2);">3 R/h</td><td style="font-size:0.68rem; color:var(--warn2);">SOLO PARA EMERGENCIAS</td></tr>
+            <tr><td>14 días</td><td style="color:var(--success2);">0.3 R/h</td><td style="font-size:0.68rem; color:var(--success2);">SALIDAS CORTAS POSIBLES</td></tr>
+          </table>
+        </div>
+      `);
+    }
+
+    return `
+      <div style="padding: 0;">
+        <div class="header-bar" style="position:sticky; top:0; z-index:10;">
+          <button onclick="App.closeModal()" style="background:none; border:none; color:var(--warn2); font-size:1rem; cursor:pointer; padding:0.5rem;">←</button>
+          <div style="flex:1;">
+            <div style="font-size:0.65rem; letter-spacing:0.15em; color:var(--text3);">ESCENARIO ACTIVO</div>
+            <div style="font-size:0.75rem; color:var(--danger2);">${s.title}</div>
+          </div>
+          <span class="tag tag-${s.color==='red'?'red':'amber'}">${s.level}</span>
+        </div>
+
+        <div style="padding:1rem; padding-top:1.5rem;">
+          <div class="panel panel-danger" style="margin-bottom:1rem;">
+            <p style="font-size:0.75rem; color:var(--danger2); margin:0;">${s.desc}</p>
+          </div>
+          ${sections.join('\n')}
+        </div>
+      </div>
+    `;
+  },
+
+  knowledge(id) {
+    const k = KB.knowledge.find(x => x.id === id);
+    if (!k) return '';
+    return `
+      <div>
+        <div class="header-bar" style="position:sticky; top:0; z-index:10;">
+          <button onclick="App.closeModal()" style="background:none; border:none; color:var(--warn2); font-size:1rem; cursor:pointer; padding:0.5rem;">←</button>
+          <div style="flex:1;">
+            <div style="font-size:0.65rem; letter-spacing:0.15em; color:var(--text3);">MÓDULO DE CONOCIMIENTO</div>
+            <div style="font-size:0.75rem; color:var(--warn2);">${k.title}</div>
+          </div>
+          <span class="tag tag-${k.tagColor}">${k.tag}</span>
+        </div>
+        <div style="padding:1rem; padding-top:1.5rem;">
+          ${k.content}
+        </div>
+      </div>
+    `;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   CONTROLADOR PRINCIPAL: App
+   Gestiona navegación, cálculos y estado global
+═══════════════════════════════════════════════════════════ */
+const App = {
+
+  // Inicializar la aplicación
+  init() {
+    this.updateClock();
+    setInterval(() => this.updateClock(), 1000);
+    this.checkNetwork();
+    window.addEventListener('online', () => this.checkNetwork());
+    window.addEventListener('offline', () => this.checkNetwork());
+    this.nav('home');
+    // Auto-calcular valores en calculadora
+    setTimeout(() => {
+      this.calcRad();
+      this.calcWater();
+      this.calcCal();
+    }, 100);
+  },
+
+  // Actualizar reloj en header
+  updateClock() {
+    const el = document.getElementById('headerClock');
+    if (el) {
+      const now = new Date();
+      el.textContent = now.toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    }
+  },
+
+  // Verificar estado de red
+  checkNetwork() {
+    const badge = document.getElementById('networkBadge');
+    if (!badge) return;
+    if (navigator.onLine) {
+      badge.textContent = '● ONLINE';
+      badge.className = 'offline-badge';
+    } else {
+      badge.textContent = '● OFFLINE';
+      badge.className = 'offline-badge offline-no';
+    }
+  },
+
+  // Actualizar subtítulo del header
+  updateHeader() {
+    const sub = document.getElementById('headerSub');
+    if (!sub) return;
+    const p = State.profile;
+    sub.textContent = p ? `OP: ${p.name.toUpperCase().substring(0,12)}` : 'SISTEMA OPERACIONAL';
+  },
+
+  // Navegar entre vistas principales
+  nav(viewName) {
+    State.currentView = viewName;
+    const main = document.getElementById('mainContent');
+    if (!main) return;
+
+    // Cerrar modal si hay uno abierto
+    this.closeModal();
+
+    // Renderizar vista
+    const html = Views[viewName] ? Views[viewName]() : '<div style="padding:1rem">Vista no encontrada</div>';
+    main.innerHTML = `<div class="fade-in">${html}</div>`;
+
+    // Actualizar nav activo
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.view === viewName);
+    });
+
+    // Inicializar calculadoras si aplica
+    if (viewName === 'calculator') {
+      setTimeout(() => { this.calcRad(); this.calcWater(); this.calcCal(); }, 50);
+    }
+
+    // Scroll al top
+    window.scrollTo(0, 0);
+  },
+
+  // Guardar configuración inicial
+  saveSetup() {
+    const name = document.getElementById('setupName')?.value.trim();
+    const location = document.getElementById('setupLocation')?.value;
+    const group = document.getElementById('setupGroup')?.value;
+    const supplies = document.getElementById('setupSupplies')?.value;
+    const region = document.getElementById('setupRegion')?.value;
+
+    if (!name || !location || !group || !supplies) {
+      // Indicar campos faltantes
+      ['setupName','setupLocation','setupGroup','setupSupplies'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.value) el.style.borderColor = '#ef4444';
+      });
+      return;
+    }
+
+    State.saveProfile({ name, location, group, supplies, region, setupDate: new Date().toISOString() });
+    this.nav('home');
+  },
+
+  // Resetear perfil (volver a setup)
+  resetProfile() {
+    if (confirm('¿Resetear perfil? Las notas y datos de inventario se conservarán.')) {
+      Storage.remove('profile');
+      State.profile = null;
+      this.nav('home');
+    }
+  },
+
+  // Confirmar borrado total
+  confirmReset() {
+    if (confirm('⚠ ADVERTENCIA: Se borrarán TODOS los datos del protocolo. ¿Continuar?')) {
+      if (confirm('¿Estás seguro? Esta acción no se puede deshacer.')) {
+        Storage.clearAll();
+        State.profile = null;
+        State.notes = '';
+        location.reload();
+      }
+    }
+  },
+
+  // Mostrar modal de escenario
+  showScenario(id) {
+    const overlay = document.getElementById('modalOverlay');
+    const content = document.getElementById('modalContent');
+    if (!overlay || !content) return;
+    content.innerHTML = Modals.scenario(id);
+    overlay.style.display = 'block';
+    overlay.scrollTop = 0;
+  },
+
+  // Mostrar modal de conocimiento
+  showKnowledge(id) {
+    const overlay = document.getElementById('modalOverlay');
+    const content = document.getElementById('modalContent');
+    if (!overlay || !content) return;
+    content.innerHTML = Modals.knowledge(id);
+    overlay.style.display = 'block';
+    overlay.scrollTop = 0;
+  },
+
+  // Cerrar modal
+  closeModal() {
+    const overlay = document.getElementById('modalOverlay');
+    if (overlay) overlay.style.display = 'none';
+  },
+
+  // ── REFUGIOS: FILTRO POR CATEGORÍA ───────────────────────
+  filterShelters(cat) {
+    State.shelterFilter = cat;
+    const main = document.getElementById('mainContent');
+    if (main) {
+      main.innerHTML = `<div class="fade-in">${Views.shelters()}</div>`;
+    }
+  },
+
+  // ── REFUGIOS: DETALLE DE UBICACIÓN ───────────────────────
+  showShelter(id) {
+    const s = SHELTERS_JA.locations.find(x => x.id === id);
+    if (!s) return;
+    const cat = SHELTERS_JA.categories.find(c => c.id === s.cat);
+    const overlay = document.getElementById('modalOverlay');
+    const content = document.getElementById('modalContent');
+
+    const hazardTags = s.hazards.map(h => `<span class="tag tag-amber" style="margin:2px;">${h}</span>`).join('');
+    const amenityList = s.amenities.map(a => `<li style="margin-bottom:0.3rem;">✓ ${a}</li>`).join('');
+
+    content.innerHTML = `
+      <div>
+        <div class="header-bar" style="position:sticky; top:0; z-index:10;">
+          <button onclick="App.closeModal()" style="background:none; border:none; color:var(--accent2); font-size:1rem; cursor:pointer; padding:0.5rem;">←</button>
+          <div style="flex:1;">
+            <div style="font-size:0.6rem; color:var(--text3); letter-spacing:0.15em;">REFUGIO / ALBERGUE</div>
+            <div style="font-size:0.72rem; color:var(--text1);">${s.muni}</div>
+          </div>
+          <span class="tag ${cat.tag}">${s.cat}: ${cat.label}</span>
+        </div>
+        <div style="padding:1rem; padding-top:1.5rem;">
+          <div style="font-size:1rem; color:var(--text1); font-weight:bold; margin-bottom:0.5rem;">${s.name}</div>
+
+          <div class="panel panel-blue" style="margin-bottom:0.75rem;">
+            <div class="section-title">DIRECCIÓN</div>
+            <div style="font-size:0.8rem; color:var(--text1);">📍 ${s.address}</div>
+            <div style="font-size:0.7rem; color:var(--text2); margin-top:0.25rem;">Municipio: ${s.muni}</div>
+            <div style="font-size:0.65rem; color:var(--text3); margin-top:0.2rem;">Coords GPS: ${s.coords}</div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.75rem;">
+            <div class="panel" style="margin-bottom:0; text-align:center;">
+              <div class="section-title">CAPACIDAD</div>
+              <div style="font-size:1.3rem; color:var(--accent2); font-weight:bold;">${s.capacity.toLocaleString()}</div>
+              <div style="font-size:0.65rem; color:var(--text3);">personas</div>
+            </div>
+            <div class="panel" style="margin-bottom:0; text-align:center;">
+              <div class="section-title">TIPO</div>
+              <div style="font-size:0.75rem; color:var(--text1); margin-top:0.25rem;">${s.type}</div>
+            </div>
+          </div>
+
+          <div class="section-title">AMENIDADES / INSTALACIONES</div>
+          <div class="panel panel-green" style="margin-bottom:0.75rem;">
+            <ul style="list-style:none; padding:0; margin:0; font-size:0.75rem; color:var(--text2);">${amenityList}</ul>
+          </div>
+
+          <div class="section-title">ÚTIL PARA AMENAZAS</div>
+          <div style="margin-bottom:0.75rem;">${hazardTags}</div>
+
+          ${s.notes ? `
+            <div class="section-title">NOTAS OPERACIONALES</div>
+            <div class="panel panel-warn" style="margin-bottom:0.75rem;">
+              <p style="font-size:0.75rem; color:var(--text1); margin:0;">${s.notes}</p>
+            </div>
+          ` : ''}
+
+          <div class="panel" style="margin-bottom:0.75rem;">
+            <div class="section-title">CATEGORÍA: ${cat.label}</div>
+            <p style="font-size:0.72rem; color:var(--text2); margin:0;">${cat.desc}</p>
+          </div>
+
+          <div class="panel panel-danger">
+            <p style="font-size:0.7rem; color:var(--danger2); margin:0;">
+              ⚠ Verifica el estado actual del refugio llamando al <strong>911</strong> o a Protección Civil Jalisco (<strong>33-3818-2200</strong>) antes de dirigirte. Las condiciones pueden cambiar según el tipo de emergencia.
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+    overlay.style.display = 'block';
+    overlay.scrollTop = 0;
+  },
+
+  // ── CALCULADORA: REGLA DEL 7-10 ──────────────────────────
+  calcRad() {
+    const initial = parseFloat(document.getElementById('radInitial')?.value) || 1000;
+    const step = parseInt(document.getElementById('radTime')?.value) || 1;
+    const timeLabel = document.getElementById('radTimeLabel');
+    const result = document.getElementById('radValue');
+    const risk = document.getElementById('radRisk');
+
+    // Los pasos son: 1, 7, 49, 343, 2401, 16807, 117649 horas
+    const times = [1, 7, 49, 343, 2401, 16807, 117649];
+    const hours = times[step];
+    const dose = initial / Math.pow(10, step);
+
+    if (timeLabel) {
+      const days = hours >= 24 ? ` (${(hours/24).toFixed(1)} días)` : '';
+      timeLabel.textContent = `${hours} horas${days}`;
+    }
+    if (result) result.textContent = `${dose >= 1 ? dose.toFixed(1) : dose.toFixed(3)} R/h`;
+
+    // Clasificar riesgo
+    if (risk) {
+      if (dose > 300) risk.textContent = '☠ LETAL en exposición de minutos. Refugio inmediato obligatorio.';
+      else if (dose > 100) risk.textContent = '⚠ MUY PELIGROSO. Máximo 15 min exposición para emergencias absolutas.';
+      else if (dose > 10) risk.textContent = '⚠ PELIGROSO. Solo salir si es absolutamente necesario. Protección máxima.';
+      else if (dose > 1) risk.textContent = '⚡ RIESGO REDUCIDO. Salidas breves con ropa de protección posibles.';
+      else if (dose > 0.1) risk.textContent = '✓ BAJO RIESGO. Actividad moderada posible con precauciones.';
+      else risk.textContent = '✓ SEGURO. Nivel comparable a fondo de radiación natural.';
+    }
+  },
+
+  // ── CALCULADORA: AGUA ──────────────────────────────────────
+  calcWater() {
+    const people = parseInt(document.getElementById('waterPeople')?.value) || 1;
+    const days = parseInt(document.getElementById('waterDays')?.value) || 14;
+    const liters = people * days * 4;
+    const el = document.getElementById('waterValue');
+    if (el) {
+      el.textContent = `${liters} litros`;
+      el.nextElementSibling?.remove();
+      const note = document.createElement('div');
+      note.style.cssText = 'font-size:0.65rem; color:var(--text3); margin-top:0.25rem;';
+      note.textContent = `= ${(liters/19).toFixed(0)} garrafones de 19L · ${(liters/208).toFixed(1)} tambos de 200L`;
+      el.parentNode.appendChild(note);
+    }
+  },
+
+  // ── CALCULADORA: CALORÍAS ─────────────────────────────────
+  calcCal() {
+    const people = parseInt(document.getElementById('calPeople')?.value) || 1;
+    const days = parseInt(document.getElementById('calDays')?.value) || 30;
+    const kcal = people * days * 2000;
+    const el = document.getElementById('calValue');
+    if (el) {
+      el.textContent = `${kcal.toLocaleString()} kcal total`;
+      // Equivalencias en arroz y frijol
+      const riceKg = (kcal * 0.6 / 3650).toFixed(1);
+      const beanKg = (kcal * 0.4 / 3400).toFixed(1);
+      el.nextElementSibling?.remove();
+      const note = document.createElement('div');
+      note.style.cssText = 'font-size:0.65rem; color:var(--text3); margin-top:0.25rem;';
+      note.textContent = `Base arroz+frijol: ~${riceKg}kg arroz + ~${beanKg}kg frijol`;
+      el.parentNode.appendChild(note);
+    }
+  },
+
+  // ── EXPORTAR BACKUP ────────────────────────────────────────
+  exportBackup() {
+    const text = Storage.exportPlain();
+    const overlay = document.getElementById('modalOverlay');
+    const content = document.getElementById('modalContent');
+
+    content.innerHTML = `
+      <div style="padding:0;">
+        <div class="header-bar" style="position:sticky; top:0;">
+          <button onclick="App.closeModal()" style="background:none; border:none; color:var(--warn2); font-size:1rem; cursor:pointer; padding:0.5rem;">←</button>
+          <div style="flex:1; font-size:0.75rem; color:var(--warn2);">BACKUP DE DATOS</div>
+        </div>
+        <div style="padding:1rem; padding-top:1.5rem;">
+          <div class="panel panel-green" style="margin-bottom:1rem;">
+            <p style="font-size:0.72rem; color:var(--success2); margin:0;">
+              Copia manualmente el texto a continuación. Guárdalo en otro dispositivo, papel o almacenamiento externo.
+            </p>
+          </div>
+          <textarea style="font-size:0.65rem; min-height:300px; resize:none; background:var(--surface); border-color:var(--success2)44; color:var(--success2)88; font-family:'Share Tech Mono',monospace; line-height:1.5;" 
+            readonly onclick="this.select()">${text}</textarea>
+          <button class="btn-tactical btn-green" onclick="App.copyToClipboard()" style="margin-top:0.5rem; justify-content:center; width:100%;">
+            📋 COPIAR AL PORTAPAPELES
+          </button>
+        </div>
+      </div>
+    `;
+    overlay.style.display = 'block';
+    overlay.scrollTop = 0;
+  },
+
+  // Copiar backup al portapapeles
+  copyToClipboard() {
+    const textarea = document.querySelector('#modalContent textarea');
+    if (!textarea) return;
+    textarea.select();
+    try {
+      navigator.clipboard.writeText(textarea.value).then(() => {
+        const btn = document.querySelector('#modalContent .btn-green');
+        if (btn) {
+          btn.textContent = '✓ COPIADO';
+          setTimeout(() => { btn.textContent = '📋 COPIAR AL PORTAPAPELES'; }, 2000);
+        }
+      });
+    } catch(e) {
+      document.execCommand('copy');
+    }
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   UTILIDADES
+═══════════════════════════════════════════════════════════ */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// Cerrar modal al presionar fuera del contenido
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) App.closeModal();
+});
+
+// Gestión de botón "atrás" del dispositivo
+window.addEventListener('popstate', () => {
+  if (document.getElementById('modalOverlay').style.display !== 'none') {
+    App.closeModal();
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   ARRANQUE DEL SISTEMA
+═══════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>
+<!--
